@@ -1,0 +1,2606 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#B22830">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Highlands Tracker HCM - Tìm Quán, Giờ Vắng & Ổ Cắm</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            hl: {
+              red: '#B22830',
+              redDark: '#8E1E24',
+              brown: '#53382C',
+              brownLight: '#7A5646',
+              cream: '#FAF6F2',
+              sand: '#F1E8DF',
+              gold: '#D4A359'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+    body {
+      background-color: #FAF6F2;
+      color: #2D1E17;
+      font-family: 'Inter', sans-serif;
+      overscroll-behavior-y: none;
+      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-slide-up {
+      animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="antialiased selection:bg-hl-red selection:text-white">
+
+  <!-- TOP HEADER CỐ ĐỊNH -->
+  <header class="sticky top-0 z-30 bg-hl-red text-white shadow-md">
+    <div class="max-w-lg mx-auto px-4 pt-3 pb-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20 shrink-0">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-7v3m4-3v3m4-3v3"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-base font-bold leading-tight tracking-tight">Highlands Tracker HCM</h1>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <p class="text-[11px] text-white/85 font-medium" id="headerSubtitle">Bình Tân • Tân Phú • Q.5 • Q.6</p>
+              <span class="text-white/50 text-[10px]">•</span>
+              <span id="liveClockBadge" class="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-black/20 px-2 py-0.5 rounded-md tabular-nums">
+                <i class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></i>
+                <span id="liveClockText">--:--:--</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <button id="btnLocateMe" onclick="requestUserLocation()" class="flex items-center gap-1.5 bg-white text-hl-red hover:bg-hl-cream active:scale-95 transition-all px-3 py-2 rounded-xl text-xs font-bold shadow-sm shrink-0">
+          <svg id="gpsIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+          </svg>
+          <span id="gpsBtnText">Gần tôi</span>
+        </button>
+      </div>
+
+      <div id="searchBarContainer" class="mt-2.5 relative">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Tìm tên đường, khu vực (vd: ten lua, aeon, doc lap...)"
+          class="w-full bg-white/95 text-hl-brown placeholder-hl-brown/50 text-sm rounded-xl pl-9 pr-9 py-2.5 focus:outline-none focus:ring-2 focus:ring-hl-gold shadow-inner"
+          oninput="handleSearchInput(this.value)"
+        >
+        <svg class="w-4 h-4 text-hl-brown/60 absolute left-3 top-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        <button id="btnClearSearch" onclick="clearSearch()" class="hidden absolute right-2.5 top-2 p-1 text-hl-brown/60 hover:text-hl-red">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- BANNER CẢNH BÁO -->
+  <div id="alertBanner" class="hidden max-w-lg mx-auto px-4 pt-3">
+    <div id="alertBannerBox" class="rounded-xl p-3 text-xs flex items-start gap-2.5 border shadow-sm">
+      <div id="alertBannerIcon" class="shrink-0 mt-0.5"></div>
+      <div class="flex-1">
+        <p id="alertBannerTitle" class="font-bold"></p>
+        <p id="alertBannerDesc" class="mt-0.5 leading-relaxed opacity-90"></p>
+      </div>
+      <button onclick="dismissBanner()" class="p-1 opacity-60 hover:opacity-100 shrink-0">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-lg mx-auto px-4 pt-3">
+
+    <!-- ==================== TAB 1: KHÁM PHÁ QUÁN ==================== -->
+    <section id="tabExplore" class="space-y-3">
+      <div>
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-hl-brown/70">Khu vực</span>
+          <div class="flex items-center gap-2">
+            <span id="resultCount" class="text-xs font-semibold text-hl-red">11 quán</span>
+            <button onclick="openAddStoreModal()" class="bg-hl-red hover:bg-hl-redDark text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs active:scale-95 transition-all flex items-center gap-1">
+              <span>+ Thêm quán</span>
+            </button>
+          </div>
+        </div>
+        <div id="areaFilterChips" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl p-3 border border-hl-brown/10 shadow-sm space-y-2.5">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button onclick="toggleFilter('socket', 'all')" data-socket="all" class="socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-brown text-white">
+            Tất cả ổ cắm
+          </button>
+          <button onclick="toggleFilter('socket', 'high')" data-socket="high" class="socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15">
+            ⚡ Nhiều ổ cắm
+          </button>
+          <button onclick="toggleFilter('socket', 'medium')" data-socket="medium" class="socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15">
+            🔌 Khá/Trung bình
+          </button>
+          <button onclick="toggleQuietOnly()" id="btnQuietOnly" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15 flex items-center gap-1">
+            <span>🍃 Đang vắng/vừa</span>
+          </button>
+        </div>
+
+        <div class="pt-2 border-t border-hl-brown/10 flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5 text-xs text-hl-brown font-medium shrink-0">
+            <svg class="w-4 h-4 text-hl-red" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Xem lúc:</span>
+          </div>
+          <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" id="timeSimulatorChips"></div>
+        </div>
+      </div>
+
+      <div id="storeListContainer" class="space-y-3 pb-4"></div>
+    </section>
+
+    <!-- ==================== TAB 2: NHẬT KÝ ĐÃ TỚI ==================== -->
+    <section id="tabJournal" class="hidden space-y-4 pb-4">
+      <div class="grid grid-cols-3 gap-2.5">
+        <div class="bg-white rounded-2xl p-3 border border-hl-brown/10 shadow-sm text-center">
+          <p class="text-[11px] font-semibold text-hl-brown/60 uppercase">Tổng lượt ghé</p>
+          <p id="statTotalVisits" class="text-2xl font-extrabold text-hl-red mt-0.5">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-3 border border-hl-brown/10 shadow-sm text-center">
+          <p class="text-[11px] font-semibold text-hl-brown/60 uppercase">Số quán đã đi</p>
+          <p id="statUniqueStores" class="text-2xl font-extrabold text-hl-brown mt-0.5">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-3 border border-hl-brown/10 shadow-sm text-center">
+          <p class="text-[11px] font-semibold text-hl-brown/60 uppercase">Quán ruột</p>
+          <p id="statFavStore" class="text-xs font-bold text-hl-brown mt-1.5 line-clamp-2 leading-tight">Chưa có</p>
+        </div>
+      </div>
+
+      <!-- Thẻ trạng thái nhắc dọn dữ liệu 30 ngày -->
+      <div id="retentionStatusCard" class="bg-white rounded-2xl p-3.5 border border-hl-brown/10 shadow-sm space-y-2.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-xs font-bold text-hl-brown flex items-center gap-1.5">
+            <span>⏳</span>
+            <span>Nhắc dọn dữ liệu sau 30 ngày</span>
+          </span>
+          <span id="retentionEligibleBadge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-hl-sand text-hl-brown">
+            0 mục đủ 30 ngày
+          </span>
+        </div>
+        <p id="retentionStatusDesc" class="text-xs text-hl-brown/75 leading-relaxed">
+          Khi mở web app, nếu có dữ liệu đã đủ 30 ngày, hệ thống sẽ nhắc bạn xóa để web nhẹ hơn hoặc gom vào 1 ô riêng để xóa bất cứ lúc nào.
+        </p>
+        <div class="flex flex-wrap gap-2 pt-0.5">
+          <button onclick="openRetentionPromptModal()" id="btnOpenRetentionPrompt" class="hidden text-[11px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 px-3 py-1.5 rounded-xl border border-amber-300 transition-colors">
+            🔔 Mở hộp thoại xử lý dữ liệu 30 ngày
+          </button>
+          <button onclick="exportBackupData(true)" class="text-[11px] font-bold bg-hl-sand hover:bg-hl-brown/15 text-hl-brown px-3 py-1.5 rounded-xl transition-colors">
+            📤 Xuất Backup đồng bộ thiết bị
+          </button>
+          <label class="text-[11px] font-bold bg-hl-brown hover:bg-hl-brownLight text-white px-3 py-1.5 rounded-xl cursor-pointer transition-colors">
+            📥 Nạp / Restore Backup
+            <input type="file" accept=".json,application/json" class="hidden" onchange="importBackupData(event)">
+          </label>
+        </div>
+      </div>
+
+      <!-- Ô RIÊNG GOM DỮ LIỆU ĐÃ ĐỦ 30 NGÀY (KHI NGƯỜI DÙNG BỎ QUA HỘP THOẠI XÓA) -->
+      <div id="archive30dBox" class="hidden bg-amber-50/90 rounded-2xl p-4 border-2 border-amber-300 shadow-sm space-y-2.5">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="inline-block text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-200 text-amber-950">
+              Ô lưu trữ riêng • Đủ 30 ngày
+            </span>
+            <h3 id="archive30dTitle" class="text-sm font-extrabold text-hl-brown mt-1">
+              Dữ liệu đã 30 ngày (0 mục)
+            </h3>
+            <p class="text-[11px] text-hl-brown/75 mt-0.5">
+              Tách biệt với dữ liệu mới. Bạn có thể mở xem hoặc xóa bất cứ lúc nào để giảm tải bộ nhớ.
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button onclick="toggleArchive30dList()" id="btnToggleArchiveList" class="text-[11px] font-bold bg-white hover:bg-amber-100 text-hl-brown px-2.5 py-1.5 rounded-xl border border-amber-300 transition-colors">
+              Xem
+            </button>
+            <button onclick="deleteArchive30dBox()" class="text-[11px] font-bold bg-hl-red hover:bg-hl-redDark text-white px-2.5 py-1.5 rounded-xl transition-colors">
+              Xóa ô này
+            </button>
+          </div>
+        </div>
+        <div id="archive30dItemsContainer" class="hidden space-y-2 pt-2 border-t border-amber-300/70"></div>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <h2 class="text-sm font-bold text-hl-brown">Lịch sử check-in mới</h2>
+        <div class="flex items-center gap-1.5">
+          <button onclick="exportExcelCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-2.5 py-2 rounded-xl shadow-xs active:scale-95 transition-transform" title="Tải file Excel (.csv)">
+            📊 Excel
+          </button>
+          <button onclick="exportTextReport()" class="bg-hl-brown hover:bg-hl-brownLight text-white text-xs font-bold px-2.5 py-2 rounded-xl shadow-xs active:scale-95 transition-transform" title="Tải file văn bản (.txt)">
+            📄 Text
+          </button>
+          <button onclick="openQuickCheckinModal()" class="bg-hl-red text-white text-xs font-bold px-3 py-2 rounded-xl shadow-sm active:scale-95 transition-transform flex items-center gap-1">
+            <span>+ Check-in</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="journalListContainer" class="space-y-3"></div>
+    </section>
+
+    <!-- ==================== TAB 3: CÀI ĐẶT & ĐỒNG BỘ THIẾT BỊ ==================== -->
+    <section id="tabSettings" class="hidden space-y-4 pb-6">
+      <!-- Hướng dẫn cài thành App Android -->
+      <div class="bg-white rounded-2xl p-4 border border-hl-brown/10 shadow-sm space-y-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-xl bg-hl-red/10 text-hl-red flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-sm font-bold text-hl-brown">Cài đặt thành App trên Android</h2>
+            <p class="text-xs text-hl-brown/70">Dùng toàn màn hình như ứng dụng độc lập</p>
+          </div>
+        </div>
+        <ol class="text-xs text-hl-brown/90 space-y-2 pl-4 list-decimal leading-relaxed bg-hl-cream p-3 rounded-xl">
+          <li>Lưu file <code class="font-semibold">highlands_tracker_hcm_v4_3.html</code> vào bộ nhớ điện thoại rồi mở bằng <strong>Google Chrome</strong>.</li>
+          <li>Nhấn biểu tượng <strong>Dấu ba chấm (⋮)</strong> ở góc trên bên phải màn hình.</li>
+          <li>Chọn <strong>"Thêm vào màn hình chính" (Add to Home screen)</strong>.</li>
+          <li>Nhấn <strong>Thêm</strong> để mở nhanh từ màn hình chính.</li>
+        </ol>
+      </div>
+
+      <!-- Đồng bộ Backup giữa Laptop <-> Android <-> Thiết bị khác -->
+      <div class="bg-white rounded-2xl p-4 border border-hl-brown/10 shadow-sm space-y-3">
+        <h3 class="text-sm font-bold text-hl-brown flex items-center gap-2">
+          <span>🔄 Xuất & Đồng bộ File Backup (Laptop ↔ Android)</span>
+        </h3>
+        <p class="text-xs text-hl-brown/75 leading-relaxed">
+          Vì mỗi trình duyệt lưu dữ liệu cục bộ, hãy <strong>Xuất file Backup (.json)</strong> trên máy nguồn, gửi sang máy đích (qua Zalo/Drive/Quick Share/USB), sau đó chọn chế độ đồng bộ và <strong>Nạp file Backup</strong> để khôi phục & đồng bộ dữ liệu hai chiều.
+        </p>
+
+        <!-- Chế độ khi Restore / Đồng bộ -->
+        <div class="bg-hl-cream p-3 rounded-xl border border-hl-brown/10 space-y-2">
+          <p class="text-[11px] font-bold text-hl-brown uppercase tracking-wide">Cách xử lý khi nạp file Backup:</p>
+          <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
+            <input type="radio" name="restoreMode" value="merge" checked class="mt-0.5 accent-hl-red">
+            <span><strong>Gộp & Đồng bộ thông minh (Khuyên dùng):</strong> Giữ dữ liệu hiện có trên máy và thêm/cập nhật các mục mới từ file backup (tự khử trùng lặp).</span>
+          </label>
+          <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
+            <input type="radio" name="restoreMode" value="replace" class="mt-0.5 accent-hl-red">
+            <span><strong>Ghi đè toàn bộ:</strong> Xóa dữ liệu đang có trên máy hiện tại và thay bằng đúng nội dung trong file backup.</span>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <button onclick="exportBackupData(false)" class="bg-hl-brown hover:bg-hl-brownLight text-white text-xs font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span>Tải file Backup</span>
+          </button>
+          <button onclick="shareOrExportBackup()" class="bg-hl-red hover:bg-hl-redDark text-white text-xs font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+            </svg>
+            <span>Chia sẻ / Đẩy file</span>
+          </button>
+        </div>
+
+        <div class="pt-1">
+          <label class="w-full bg-hl-sand hover:bg-hl-brown/15 text-hl-brown text-xs font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 transition-transform border border-hl-brown/15">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <span>Chọn file Backup (.json) để Restore / Đồng bộ</span>
+            <input type="file" id="importFileInput" accept=".json,application/json" class="hidden" onchange="importBackupData(event)">
+          </label>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-2 border-t border-hl-brown/10">
+          <button onclick="exportExcelCSV()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+            <span>📊 Xuất Excel (.csv)</span>
+          </button>
+          <button onclick="exportTextReport()" class="bg-hl-brownLight hover:bg-hl-brown text-white text-xs font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+            <span>📄 Xuất Text (.txt)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lưu ý vòng đời 30 ngày -->
+      <div class="bg-white rounded-2xl p-4 border border-hl-brown/10 shadow-sm space-y-2">
+        <h3 class="text-sm font-bold text-hl-brown">ℹ️ Quy tắc nhắc xóa dữ liệu 30 ngày</h3>
+        <ul class="text-xs text-hl-brown/80 space-y-1.5 list-disc pl-4 leading-relaxed">
+          <li><strong>Nhắc khi mở app:</strong> Khi có nhật ký đạt <strong>30 ngày tuổi trở lên</strong>, web app sẽ mở hộp thoại nhắc dọn dẹp để giữ app nhẹ và mượt.</li>
+          <li><strong>Trường hợp 1 (Xóa):</strong> Xóa toàn bộ dữ liệu đã đủ 30 ngày.</li>
+          <li><strong>Trường hợp 2 (Bỏ qua):</strong> Gom toàn bộ dữ liệu đủ 30 ngày vào <strong>1 ô riêng</strong> để bạn xóa bất cứ khi nào cần; dữ liệu mới ghi tiếp sẽ nằm ở danh sách mới tách biệt.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="fixed bottom-0 inset-x-0 z-30 bg-white border-t border-hl-brown/10 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] safe-bottom">
+    <div class="max-w-lg mx-auto grid grid-cols-3 h-16">
+      <button onclick="switchTab('explore')" id="navExplore" class="flex flex-col items-center justify-center gap-1 text-hl-red font-bold transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <span class="text-[11px]">Khám phá</span>
+      </button>
+
+      <button onclick="switchTab('journal')" id="navJournal" class="relative flex flex-col items-center justify-center gap-1 text-hl-brown/55 font-medium transition-colors">
+        <div class="relative">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+          <span id="journalBadge" class="hidden absolute -top-1.5 -right-2.5 bg-hl-red text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">0</span>
+        </div>
+        <span class="text-[11px]">Nhật ký</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="navSettings" class="flex flex-col items-center justify-center gap-1 text-hl-brown/55 font-medium transition-colors">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <span class="text-[11px]">Cài đặt & App</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==================== MODAL 0: NHẮC NHỞ XÓA DỮ LIỆU ĐÃ ĐỦ 30 NGÀY ==================== -->
+  <div id="retentionPromptModal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-3">
+    <div class="bg-white w-full max-w-lg rounded-3xl animate-slide-up p-5 space-y-4 shadow-xl border border-hl-brown/15">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center text-lg shrink-0">
+          🧹
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Nhắc dọn dữ liệu đã 30 ngày</h3>
+          <p id="retentionPromptSummary" class="text-xs text-hl-brown/80 mt-1 leading-relaxed"></p>
+        </div>
+      </div>
+
+      <div class="bg-hl-cream rounded-2xl p-3.5 border border-hl-brown/10 space-y-2 text-xs text-hl-brown/85">
+        <p><strong>• Nếu Xóa toàn bộ:</strong> Xóa sạch các bản ghi đã đủ 30 ngày để web app nhẹ hơn, giữ lại nhật ký mới.</p>
+        <p><strong>• Nếu Bỏ qua:</strong> Gom toàn bộ dữ liệu 30 ngày vào <strong>1 ô riêng</strong> (xóa lúc nào tùy bạn); các dữ liệu mới sẽ bắt đầu ở danh sách mới hoàn toàn tách biệt.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+        <button onclick="dismissRetentionPromptToArchive()" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-3 rounded-2xl border border-hl-brown/20 transition-colors">
+          Bỏ qua (Gom vào 1 ô riêng)
+        </button>
+        <button onclick="confirmDeleteExpired30d()" class="bg-hl-red hover:bg-hl-redDark text-white font-bold text-xs py-3.5 px-3 rounded-2xl shadow-md transition-colors">
+          Xóa dữ liệu 30 ngày
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1: CHI TIẾT QUÁN & BIỂU ĐỒ GIỜ ĐÔNG ==================== -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[90vh] overflow-y-auto animate-slide-up p-5 space-y-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <span id="modalStoreArea" class="inline-block text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md bg-hl-red/10 text-hl-red"></span>
+          <div class="flex items-center gap-2 mt-1 flex-wrap">
+            <h3 id="modalStoreName" class="text-lg font-extrabold text-hl-brown leading-snug"></h3>
+            <button type="button" id="btnEditNameModal" class="text-[11px] font-bold bg-hl-sand hover:bg-hl-brown/15 text-hl-brown px-2 py-0.5 rounded-lg border border-hl-brown/15 transition-colors">
+              ✏️ Edit tên
+            </button>
+          </div>
+          <p id="modalStoreAddress" class="text-xs text-hl-brown/75 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('detailModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown hover:bg-hl-brown/20 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <div class="bg-hl-cream p-3 rounded-2xl border border-hl-brown/10">
+          <p class="text-[11px] font-semibold text-hl-brown/60">Giờ hoạt động</p>
+          <p id="modalStoreHours" class="text-sm font-bold text-hl-brown mt-0.5"></p>
+          <p id="modalStoreType" class="text-[11px] text-hl-brown/70 mt-0.5"></p>
+        </div>
+        <div class="bg-hl-cream p-3 rounded-2xl border border-hl-brown/10">
+          <div class="flex items-center justify-between">
+            <p class="text-[11px] font-semibold text-hl-brown/60">Ổ cắm điện</p>
+            <button id="btnEditSocketModal" class="text-[11px] font-bold text-hl-red underline">Sửa</button>
+          </div>
+          <p id="modalStoreSocketLevel" class="text-sm font-bold text-hl-brown mt-0.5"></p>
+          <p id="modalStoreSocketNote" class="text-[11px] text-hl-brown/75 mt-0.5 leading-snug"></p>
+        </div>
+      </div>
+
+      <div class="bg-hl-cream p-3.5 rounded-2xl border border-hl-brown/10 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <h4 class="text-xs font-bold text-hl-brown">Biểu đồ mật độ khách theo giờ</h4>
+            <p id="modalChartDayType" class="text-[11px] text-hl-brown/65"></p>
+          </div>
+          <div class="flex gap-1 bg-white p-1 rounded-lg border border-hl-brown/10">
+            <button id="btnChartWeekday" onclick="switchChartDayType('weekday')" class="px-2 py-1 rounded text-[11px] font-bold bg-hl-brown text-white">T2 - T6</button>
+            <button id="btnChartWeekend" onclick="switchChartDayType('weekend')" class="px-2 py-1 rounded text-[11px] font-bold text-hl-brown">T7 - CN</button>
+          </div>
+        </div>
+
+        <div id="crowdChartBars" class="h-32 flex items-end justify-between gap-1 pt-4 pb-1 px-1 border-b border-hl-brown/15"></div>
+        <div class="flex justify-between text-[10px] font-semibold text-hl-brown/60 px-1">
+          <span>06h</span>
+          <span>09h</span>
+          <span>12h</span>
+          <span>15h</span>
+          <span>18h</span>
+          <span>21h</span>
+          <span>23h</span>
+        </div>
+
+        <div class="flex items-center justify-center gap-4 pt-1 text-[11px] font-medium text-hl-brown/80">
+          <span class="flex items-center gap-1"><i class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></i> Vắng</span>
+          <span class="flex items-center gap-1"><i class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></i> Vừa phải</span>
+          <span class="flex items-center gap-1"><i class="w-2.5 h-2.5 rounded-full bg-hl-red inline-block"></i> Đông khách</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-1">
+        <a id="modalGmapsLink" href="#" target="_blank" rel="noopener noreferrer" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-3 rounded-2xl flex items-center justify-center gap-1.5 border border-hl-brown/15">
+          <svg class="w-4 h-4 text-hl-red" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          </svg>
+          <span>Google Maps (Live)</span>
+        </a>
+        <button id="modalBtnCheckin" class="bg-hl-red hover:bg-hl-redDark text-white font-bold text-xs py-3.5 px-3 rounded-2xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-transform">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+          </svg>
+          <span>Check-in đã tới</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 1B: ĐỔI TÊN QUÁN (GIỮ NGUYÊN ĐỊA CHỈ) ==================== -->
+  <div id="editStoreNameModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Đổi tên quán</h3>
+          <p class="text-xs text-hl-brown/70 mt-0.5">Chỉ đổi tên hiển thị của quán, địa chỉ vẫn giữ nguyên</p>
+        </div>
+        <button onclick="closeModal('editStoreNameModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="saveStoreNameOverride(event)" class="space-y-3.5">
+        <input type="hidden" id="editStoreNameId">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Tên quán mới</label>
+          <input type="text" id="editStoreNameInput" required placeholder="Nhập tên quán muốn đổi..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+
+        <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10">
+          <p class="text-[11px] font-bold text-hl-brown/60 uppercase">Địa chỉ (giữ nguyên)</p>
+          <p id="editStoreFixedAddress" class="text-xs text-hl-brown/85 mt-1 leading-relaxed"></p>
+        </div>
+
+        <div class="flex items-center gap-2.5 pt-1">
+          <button type="button" id="btnResetStoreName" onclick="resetStoreNameOverride()" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-3.5 rounded-2xl border border-hl-brown/15 transition-colors">
+            Khôi phục tên gốc
+          </button>
+          <button type="submit" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md active:scale-98 transition-transform">
+            Lưu tên quán
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: CHECK-IN NHẬT KÝ ĐÃ TỚI ==================== -->
+  <div id="checkinModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Ghi nhật ký đã tới quán</h3>
+          <p class="text-xs text-hl-brown/70">Lưu lại trải nghiệm không gian, ổ cắm & đồ uống</p>
+        </div>
+        <button onclick="closeModal('checkinModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="checkinForm" onsubmit="saveCheckinEntry(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Chọn chi nhánh Highlands</label>
+          <select id="checkinStoreSelect" required class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red"></select>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Thời gian Check-in</label>
+            <input type="datetime-local" id="checkinDateTime" required class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Thời gian Check-out (tuỳ chọn)</label>
+            <input type="datetime-local" id="checkoutDateTime" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Độ đông thực tế</label>
+            <select id="checkinCrowdActual" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-xs font-semibold text-hl-brown">
+              <option value="Vắng khách">🍃 Vắng khách</option>
+              <option value="Vừa phải" selected>🙂 Vừa phải</option>
+              <option value="Rất đông">🔥 Rất đông / Hết bàn</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Tình trạng ổ cắm</label>
+            <select id="checkinSocketActual" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-xs font-semibold text-hl-brown">
+              <option value="Có ổ cắm trống">⚡ Có ổ cắm trống</option>
+              <option value="Kín ổ cắm">🔌 Có nhưng đã kín</option>
+              <option value="Không cần dùng">☕ Không cần dùng</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Món đã gọi & Ghi chú chỗ ngồi</label>
+          <textarea id="checkinNote" rows="2" placeholder="Ví dụ: Phin Sữa Đá, ngồi bàn dài tầng 1 sát ổ điện..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm text-hl-brown placeholder-hl-brown/45 focus:outline-none focus:ring-2 focus:ring-hl-red"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md active:scale-98 transition-transform">
+          Lưu vào Nhật ký của tôi
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2B: THÊM QUÁN MỚI TỪ LINK / TỌA ĐỘ GOOGLE MAPS ==================== -->
+  <div id="addStoreModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Thêm quán mới nhanh</h3>
+          <p class="text-xs text-hl-brown/70">Dán link Google Maps, tọa độ hoặc nhập thủ công • Tự tạo biểu đồ giờ</p>
+        </div>
+        <button onclick="closeModal('addStoreModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="addStoreForm" onsubmit="saveCustomStore(event)" class="space-y-3">
+        <div class="bg-hl-cream rounded-2xl p-3 border border-hl-brown/15 space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-xs font-bold text-hl-brown">🔗 Dán link / tọa độ / thông tin từ Google Maps</label>
+            <button type="button" onclick="pasteFromClipboardAndParse()" class="text-[11px] font-bold bg-white hover:bg-hl-sand text-hl-red px-2.5 py-1 rounded-lg border border-hl-brown/15 transition-colors">
+              📋 Dán & Phân tích ngay
+            </button>
+          </div>
+          <textarea
+            id="gmapsSmartInput"
+            rows="2"
+            placeholder="Dán link Google Maps (vd: https://www.google.com/maps/place/.../@10.77,106.69...), tọa độ 10.77, 106.69 hoặc text copy từ Google Maps..."
+            class="w-full bg-white border border-hl-brown/20 rounded-xl px-3 py-2 text-xs text-hl-brown placeholder-hl-brown/45 focus:outline-none focus:ring-2 focus:ring-hl-red"
+            oninput="handleSmartGoogleInput(this.value)"
+          ></textarea>
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <p id="gmapsParseStatus" class="text-[11px] font-semibold text-hl-brown/70">
+              Hỗ trợ link chứa tên quán, @lat,lng, ?q=lat,lng, !3d...!4d... hoặc tọa độ trực tiếp.
+            </p>
+            <button type="button" onclick="openGoogleMapsSearchHelper()" class="text-[11px] font-bold text-hl-red underline shrink-0">
+              Mở Google Maps tìm quán ↗
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Tên quán *</label>
+          <input type="text" id="newStoreName" required placeholder="Ví dụ: Highlands Coffee / Cafe ABC" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-sm font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Khu vực hiển thị</label>
+            <input type="text" id="newStoreArea" list="areaSuggestionsList" value="Khu Tên Lửa" placeholder="Ví dụ: Quận 1, Bình Tân..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+            <datalist id="areaSuggestionsList">
+              <option value="Khu Tên Lửa"></option>
+              <option value="Bình Tân"></option>
+              <option value="Bình Hưng Hòa"></option>
+              <option value="Tân Phú"></option>
+              <option value="Quận 5"></option>
+              <option value="Quận 6"></option>
+              <option value="Quận 1"></option>
+              <option value="Quận 3"></option>
+              <option value="Quận 10"></option>
+              <option value="Phú Nhuận"></option>
+            </datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Quận / Huyện</label>
+            <input type="text" id="newStoreDistrict" value="Bình Tân" placeholder="Ví dụ: Bình Tân, Quận 1..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Địa chỉ quán *</label>
+          <input type="text" id="newStoreAddress" required placeholder="Ví dụ: 123 Nguyễn Trãi, Phường 2, Quận 5, TP.HCM" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Vĩ độ (Lat)</label>
+            <input type="number" step="any" id="newStoreLat" value="10.7769" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Kinh độ (Lng)</label>
+            <input type="number" step="any" id="newStoreLng" value="106.7009" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-medium text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Loại hình (ước lượng giờ đông)</label>
+            <select id="newStoreType" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-semibold text-hl-brown">
+              <option value="Streetfront 2 tầng" selected>Streetfront 2 tầng</option>
+              <option value="Streetfront mặt tiền">Streetfront mặt tiền</option>
+              <option value="Khu dân cư">Khu dân cư</option>
+              <option value="Trung tâm thương mại">Trung tâm thương mại</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Khung giờ hoạt động</label>
+            <select id="newStoreHoursPreset" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-semibold text-hl-brown">
+              <option value="06:30 - 23:00|6.5|23.0" selected>06:30 - 23:00</option>
+              <option value="07:00 - 22:30|7.0|22.5">07:00 - 22:30</option>
+              <option value="07:00 - 22:00|7.0|22.0">07:00 - 22:00</option>
+              <option value="08:00 - 22:00|8.0|22.0">08:00 - 22:00</option>
+              <option value="09:00 - 22:00|9.0|22.0">09:00 - 22:00</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Mức ổ cắm điện</label>
+            <select id="newStoreSocketLevel" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs font-semibold text-hl-brown">
+              <option value="high" selected>⚡ Nhiều ổ cắm</option>
+              <option value="medium">🔌 Khá / Trung bình</option>
+              <option value="low">🪫 Ít ổ cắm</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-hl-brown mb-1">Ghi chú ổ cắm</label>
+            <input type="text" id="newStoreSocketNote" value="Ổ cắm dọc tường / bàn làm việc." placeholder="Vị trí ổ cắm..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-xs text-hl-brown">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md active:scale-98 transition-transform">
+          Lưu quán & Tạo biểu đồ giờ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: CẬP NHẬT THÔNG TIN Ổ CẮM ==================== -->
+  <div id="socketModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Cập nhật tình trạng ổ cắm</h3>
+          <p id="socketModalStoreName" class="text-xs text-hl-red font-semibold mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('socketModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form onsubmit="saveSocketOverride(event)" class="space-y-3.5">
+        <input type="hidden" id="socketEditStoreId">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Mức độ ổ cắm điện</label>
+          <select id="socketLevelSelect" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown">
+            <option value="high">⚡ Nhiều ổ cắm (Rất tiện làm việc)</option>
+            <option value="medium">🔌 Khá / Trung bình (Vài khu vực có)</option>
+            <option value="low">🪫 Ít ổ cắm (Khó tìm ổ điện)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Vị trí ổ cắm cụ thể trong quán</label>
+          <input type="text" id="socketNoteInput" required placeholder="Ví dụ: Dọc tường bên trái, dưới gầm bàn dài..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm text-hl-brown">
+        </div>
+
+        <button type="submit" class="w-full bg-hl-brown hover:bg-hl-brownLight text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">
+          Lưu cập nhật ổ cắm
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST THÔNG BÁO NHANH -->
+  <div id="toastNotification" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-hl-brown text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 whitespace-nowrap">
+    <span id="toastText">Đã lưu thành công</span>
+  </div>
+
+  <script>
+    const DEFAULT_STORES = [
+      {
+        id: 'hl-tenlua-183',
+        name: 'Highlands Coffee 183-185 Tên Lửa',
+        area: 'Khu Tên Lửa',
+        district: 'Bình Tân',
+        address: '183-185 Tên Lửa, P. Bình Trị Đông B, Q. Bình Tân, TP.HCM',
+        lat: 10.7443,
+        lng: 106.6143,
+        openHour: 6.5,
+        closeHour: 23.0,
+        hoursText: '06:30 - 23:00',
+        storeType: 'Streetfront 2 tầng',
+        socketLevel: 'high',
+        socketNote: 'Nhiều ổ cắm dọc tường & bàn dài tầng 1, rất hợp ngồi laptop.',
+        crowdWeekday: [20, 45, 75, 70, 50, 45, 65, 60, 40, 35, 45, 55, 65, 80, 85, 65, 35],
+        crowdWeekend: [25, 50, 80, 85, 75, 65, 60, 65, 60, 65, 75, 80, 85, 90, 90, 70, 40]
+      },
+      {
+        id: 'hl-duongso7-142',
+        name: 'Highlands Coffee 142-144 Đường Số 7',
+        area: 'Khu Tên Lửa',
+        district: 'Bình Tân',
+        address: '142-144 Đường Số 7, P. Bình Trị Đông B, Q. Bình Tân, TP.HCM',
+        lat: 10.7478,
+        lng: 106.6122,
+        openHour: 7.0,
+        closeHour: 22.5,
+        hoursText: '07:00 - 22:30',
+        storeType: 'Streetfront mặt tiền',
+        socketLevel: 'medium',
+        socketNote: 'Khá nhiều ổ cắm ở khu vực bàn sát tường bên trong phòng lạnh.',
+        crowdWeekday: [15, 40, 65, 60, 45, 40, 60, 55, 35, 30, 40, 50, 60, 75, 75, 55, 25],
+        crowdWeekend: [20, 45, 75, 80, 70, 60, 55, 55, 55, 60, 70, 75, 80, 85, 80, 60, 30]
+      },
+      {
+        id: 'hl-aeon-binhtan',
+        name: 'Highlands Coffee AEON Mall Bình Tân',
+        area: 'Bình Tân',
+        district: 'Bình Tân',
+        address: 'Tầng trệt, Số 1 Đường Số 17A, P. Bình Trị Đông B, Q. Bình Tân',
+        lat: 10.7426,
+        lng: 106.6119,
+        openHour: 8.0,
+        closeHour: 22.0,
+        hoursText: '08:00 - 22:00',
+        storeType: 'Trung tâm thương mại',
+        socketLevel: 'low',
+        socketNote: 'Ít ổ cắm (chỉ có vài trụ cột sát vách), chủ yếu phục vụ khách mua sắm.',
+        crowdWeekday: [0, 0, 25, 35, 45, 55, 70, 65, 50, 45, 50, 65, 80, 85, 80, 60, 20],
+        crowdWeekend: [0, 0, 35, 55, 75, 85, 90, 90, 85, 85, 90, 95, 95, 95, 90, 70, 25]
+      },
+      {
+        id: 'hl-huonglo3-457',
+        name: 'Highlands Coffee 457 Hương Lộ 3',
+        area: 'Bình Hưng Hòa',
+        district: 'Bình Tân',
+        address: '457 Hương Lộ 3, P. Bình Hưng Hòa, Q. Bình Tân, TP.HCM',
+        lat: 10.7937,
+        lng: 106.6095,
+        openHour: 6.5,
+        closeHour: 22.5,
+        hoursText: '06:30 - 22:30',
+        storeType: 'Streetfront 2 tầng',
+        socketLevel: 'high',
+        socketNote: 'Nhiều ổ cắm dọc chân tường và khu vực tầng lầu yên tĩnh.',
+        crowdWeekday: [25, 55, 75, 65, 45, 40, 55, 50, 35, 35, 45, 55, 65, 75, 75, 50, 25],
+        crowdWeekend: [30, 60, 80, 80, 65, 55, 50, 50, 50, 55, 65, 75, 80, 80, 75, 55, 30]
+      },
+      {
+        id: 'hl-duongso8-bhh',
+        name: 'Highlands Coffee Số 3 Đường Số 8',
+        area: 'Bình Hưng Hòa',
+        district: 'Bình Tân',
+        address: 'Số 3 Đường Số 8, P. Bình Hưng Hòa B, Q. Bình Tân, TP.HCM',
+        lat: 10.8065,
+        lng: 106.5948,
+        openHour: 7.0,
+        closeHour: 22.0,
+        hoursText: '07:00 - 22:00',
+        storeType: 'Khu dân cư',
+        socketLevel: 'medium',
+        socketNote: 'Mức trung bình, tập trung ở dãy ghế sofa sát tường trong nhà.',
+        crowdWeekday: [15, 40, 60, 55, 40, 35, 50, 45, 30, 30, 40, 50, 60, 70, 65, 45, 20],
+        crowdWeekend: [20, 45, 70, 75, 60, 50, 45, 45, 45, 50, 60, 70, 75, 75, 70, 50, 25]
+      },
+      {
+        id: 'hl-aeon-tanphu',
+        name: 'Highlands Coffee AEON Mall Tân Phú',
+        area: 'Tân Phú',
+        district: 'Tân Phú',
+        address: 'Tầng trệt G15 & Lầu 2 SF11, 30 Bờ Bao Tân Thắng, P. Sơn Kỳ, Tân Phú',
+        lat: 10.8015,
+        lng: 106.6174,
+        openHour: 9.0,
+        closeHour: 22.0,
+        hoursText: '09:00 - 22:00',
+        storeType: 'Trung tâm thương mại',
+        socketLevel: 'low',
+        socketNote: 'Rất ít ổ cắm, không khuyến khích mang laptop làm việc lâu.',
+        crowdWeekday: [0, 0, 0, 30, 45, 60, 75, 70, 55, 50, 55, 70, 85, 90, 85, 65, 20],
+        crowdWeekend: [0, 0, 0, 45, 70, 85, 95, 95, 90, 90, 95, 95, 95, 95, 90, 75, 25]
+      },
+      {
+        id: 'hl-doclap-105',
+        name: 'Highlands Coffee 105 Độc Lập',
+        area: 'Tân Phú',
+        district: 'Tân Phú',
+        address: '105 Độc Lập, P. Tân Thành, Q. Tân Phú, TP.HCM',
+        lat: 10.7931,
+        lng: 106.6335,
+        openHour: 6.5,
+        closeHour: 23.0,
+        hoursText: '06:30 - 23:00',
+        storeType: 'Streetfront rộng rãi',
+        socketLevel: 'high',
+        socketNote: 'Nhiều ổ cắm dọc chân tường, không gian thoáng cực hợp chạy deadline.',
+        crowdWeekday: [25, 55, 80, 70, 50, 45, 65, 60, 40, 35, 45, 55, 65, 75, 75, 55, 30],
+        crowdWeekend: [30, 55, 80, 85, 70, 60, 55, 55, 55, 60, 70, 75, 80, 85, 80, 60, 35]
+      },
+      {
+        id: 'hl-tranhungdao-683',
+        name: 'Highlands Coffee 683 Trần Hưng Đạo',
+        area: 'Quận 5',
+        district: 'Quận 5',
+        address: '683 Trần Hưng Đạo, P. 1, Quận 5, TP.HCM',
+        lat: 10.7544,
+        lng: 106.6811,
+        openHour: 6.5,
+        closeHour: 23.0,
+        hoursText: '06:30 - 23:00',
+        storeType: 'Streetfront 2 tầng',
+        socketLevel: 'medium',
+        socketNote: 'Khá nhiều ổ cắm, khu vực tầng trên yên tĩnh hơn tầng trệt.',
+        crowdWeekday: [30, 65, 85, 75, 55, 50, 75, 70, 45, 40, 50, 60, 70, 80, 80, 60, 35],
+        crowdWeekend: [25, 55, 80, 85, 75, 65, 60, 60, 60, 65, 75, 80, 85, 85, 80, 65, 40]
+      },
+      {
+        id: 'hl-hungvuong-153',
+        name: 'Highlands Coffee 153 Hùng Vương',
+        area: 'Quận 5',
+        district: 'Quận 5',
+        address: '153 Hùng Vương, P. 4, Quận 5, TP.HCM',
+        lat: 10.7569,
+        lng: 106.6716,
+        openHour: 7.0,
+        closeHour: 22.5,
+        hoursText: '07:00 - 22:30',
+        storeType: 'Streetfront',
+        socketLevel: 'medium',
+        socketNote: 'Ổ cắm mức trung bình ở các bàn áp tường bên trong.',
+        crowdWeekday: [20, 55, 80, 75, 55, 50, 75, 70, 45, 40, 50, 60, 65, 75, 75, 55, 25],
+        crowdWeekend: [20, 50, 75, 80, 70, 60, 55, 55, 55, 60, 70, 75, 80, 80, 75, 55, 30]
+      },
+      {
+        id: 'hl-nguyenvanluong-240',
+        name: 'Highlands Coffee 240 Nguyễn Văn Luông',
+        area: 'Quận 6',
+        district: 'Quận 6',
+        address: '240 Nguyễn Văn Luông, P. 11, Quận 6, TP.HCM',
+        lat: 10.7429,
+        lng: 106.6331,
+        openHour: 7.0,
+        closeHour: 23.0,
+        hoursText: '07:00 - 23:00',
+        storeType: 'Streetfront không gian lớn',
+        socketLevel: 'high',
+        socketNote: 'Nhiều ổ cắm, mặt bằng rộng rãi dễ chọn chỗ ngồi làm việc nhóm hoặc cá nhân.',
+        crowdWeekday: [20, 50, 75, 65, 45, 40, 60, 55, 35, 35, 45, 55, 65, 80, 80, 60, 30],
+        crowdWeekend: [25, 55, 80, 85, 70, 60, 55, 55, 55, 60, 70, 80, 85, 85, 80, 60, 35]
+      },
+      {
+        id: 'hl-haugiang-110',
+        name: 'Highlands Coffee 110-112 Hậu Giang',
+        area: 'Quận 6',
+        district: 'Quận 6',
+        address: '110-112 Hậu Giang, P. 6, Quận 6, TP.HCM',
+        lat: 10.7495,
+        lng: 106.6491,
+        openHour: 6.5,
+        closeHour: 22.5,
+        hoursText: '06:30 - 22:30',
+        storeType: 'Streetfront',
+        socketLevel: 'medium',
+        socketNote: 'Khá nhiều ổ cắm dọc dãy ghế sofa sát tường.',
+        crowdWeekday: [25, 55, 80, 70, 50, 45, 65, 60, 40, 35, 45, 55, 65, 75, 75, 55, 25],
+        crowdWeekend: [25, 55, 80, 80, 70, 60, 55, 55, 55, 60, 70, 75, 80, 80, 75, 55, 30]
+      }
+    ];
+
+    const AREAS = ['Tất cả', 'Khu Tên Lửa', 'Bình Tân', 'Bình Hưng Hòa', 'Tân Phú', 'Quận 5', 'Quận 6'];
+
+    const STORAGE_KEYS = {
+      JOURNAL: 'hl_tracker_journal_v1',
+      ARCHIVE_30D: 'hl_tracker_archive_30d_v1',
+      SOCKET_OVERRIDES: 'hl_tracker_sockets_v1',
+      NAME_OVERRIDES: 'hl_tracker_store_names_v1',
+      CUSTOM_STORES: 'hl_tracker_custom_stores_v1'
+    };
+
+    const RETENTION_DAYS = 30;
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+    let state = {
+      activeTab: 'explore',
+      selectedArea: 'Tất cả',
+      socketFilter: 'all',
+      quietOnly: false,
+      searchQuery: '',
+      simulatedHour: null,
+      userLocation: null,
+      sortByDistance: false,
+      journal: [],
+      archive30d: [],
+      pendingExpired30d: [],
+      archiveExpanded: false,
+      customStores: [],
+      socketOverrides: {},
+      nameOverrides: {},
+      activeModalStoreId: null,
+      modalChartDayType: 'weekday'
+    };
+
+    function isStorageAvailable() {
+      try {
+        const testKey = '__hl_storage_test__';
+        window.localStorage.setItem(testKey, '1');
+        window.localStorage.removeItem(testKey);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function safeLoadJSON(key, fallback) {
+      try {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return parsed !== null && typeof parsed === 'object' ? parsed : fallback;
+      } catch (err) {
+        return fallback;
+      }
+    }
+
+    function safeSaveJSON(key, value) {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch (err) {
+        showBanner(
+          'warning',
+          'Trình duyệt đang chặn lưu tự động',
+          'Bạn đang dùng Tab ẩn danh hoặc bộ nhớ đầy. Hãy dùng nút "Xuất file Backup" để lưu dữ liệu.'
+        );
+        return false;
+      }
+    }
+
+    function parseEntryTimestampMs(entry, fallbackMs = Date.now()) {
+      if (entry && typeof entry.createdAtMs === 'number' && Number.isFinite(entry.createdAtMs)) {
+        return entry.createdAtMs;
+      }
+      if (entry && entry.visitedAt) {
+        const parsed = Date.parse(entry.visitedAt);
+        if (!Number.isNaN(parsed)) return parsed;
+      }
+      return fallbackMs;
+    }
+
+    function isEntryAtLeast30DaysOld(entry, nowMs = Date.now()) {
+      const ts = parseEntryTimestampMs(entry, nowMs);
+      const ageDays = Math.floor(Math.max(0, nowMs - ts) / MS_PER_DAY);
+      return ageDays >= RETENTION_DAYS;
+    }
+
+    function getEntryAgeDays(entry, nowMs = Date.now()) {
+      const ts = parseEntryTimestampMs(entry, nowMs);
+      return Math.floor(Math.max(0, nowMs - ts) / MS_PER_DAY);
+    }
+
+    function evaluate30DayPromptOnOpen(rawJournal, nowMs = Date.now()) {
+      const list = Array.isArray(rawJournal) ? rawJournal : [];
+      const expired = [];
+      const active = [];
+
+      for (const item of list) {
+        const normalized = Object.assign({}, item, {
+          createdAtMs: parseEntryTimestampMs(item, nowMs)
+        });
+        if (isEntryAtLeast30DaysOld(normalized, nowMs)) {
+          expired.push(normalized);
+        } else {
+          active.push(normalized);
+        }
+      }
+
+      return { active, expired };
+    }
+
+    function openRetentionPromptModal() {
+      if (!state.pendingExpired30d || state.pendingExpired30d.length === 0) return;
+      const count = state.pendingExpired30d.length;
+      const oldestAge = Math.max(...state.pendingExpired30d.map(e => getEntryAgeDays(e)));
+      document.getElementById('retentionPromptSummary').textContent =
+        `Hiện có ${count} mục nhật ký đã đạt mốc 30 ngày (cũ nhất ${oldestAge} ngày). Bạn muốn xóa toàn bộ để web nhẹ hơn hay bỏ qua để gom vào 1 ô riêng?`;
+      document.getElementById('retentionPromptModal').classList.remove('hidden');
+    }
+
+    function confirmDeleteExpired30d() {
+      const deletedCount = state.pendingExpired30d.length;
+      state.pendingExpired30d = [];
+      safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+      closeModal('retentionPromptModal');
+      updateJournalBadge();
+      renderStoreList();
+      renderJournalList();
+      renderRetentionUI();
+      showToast(`Đã xóa ${deletedCount} mục dữ liệu 30 ngày!`);
+    }
+
+    function dismissRetentionPromptToArchive() {
+      if (state.pendingExpired30d.length > 0) {
+        const existingIds = new Set(state.archive30d.map(i => i.id));
+        const toAdd = state.pendingExpired30d.filter(i => !existingIds.has(i.id));
+        state.archive30d = [...toAdd, ...state.archive30d];
+        state.pendingExpired30d = [];
+        state.archiveExpanded = false;
+        safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
+        safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+      }
+      closeModal('retentionPromptModal');
+      updateJournalBadge();
+      renderStoreList();
+      renderJournalList();
+      renderRetentionUI();
+      showToast('Đã gom dữ liệu 30 ngày vào 1 ô riêng!');
+    }
+
+    function toggleArchive30dList() {
+      state.archiveExpanded = !state.archiveExpanded;
+      renderArchive30dBox();
+    }
+
+    function deleteArchive30dBox() {
+      const count = state.archive30d.length;
+      state.archive30d = [];
+      state.archiveExpanded = false;
+      safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
+      renderArchive30dBox();
+      showToast(`Đã xóa ô dữ liệu 30 ngày (${count} mục)`);
+    }
+
+    function renderRetentionUI() {
+      const expiredCount = state.pendingExpired30d.length;
+      const badge = document.getElementById('retentionEligibleBadge');
+      const btnPrompt = document.getElementById('btnOpenRetentionPrompt');
+      const desc = document.getElementById('retentionStatusDesc');
+
+      if (badge) {
+        badge.textContent = expiredCount > 0 ? `${expiredCount} mục đủ 30 ngày` : '0 mục đủ 30 ngày';
+        badge.className = expiredCount > 0
+          ? 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-950'
+          : 'text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-hl-sand text-hl-brown';
+      }
+
+      if (btnPrompt) {
+        btnPrompt.classList.toggle('hidden', expiredCount === 0);
+      }
+
+      if (desc) {
+        desc.textContent = expiredCount > 0
+          ? `Có ${expiredCount} mục đã đủ 30 ngày. Nhấn nút bên dưới để chọn xóa toàn bộ hoặc gom vào 1 ô riêng.`
+          : 'Khi có mục nhật ký đạt 30 ngày, mở web app sẽ nhắc bạn xóa hoặc gom vào 1 ô riêng.';
+      }
+
+      renderArchive30dBox();
+    }
+
+    function renderArchive30dBox() {
+      const box = document.getElementById('archive30dBox');
+      const title = document.getElementById('archive30dTitle');
+      const listEl = document.getElementById('archive30dItemsContainer');
+      const btnToggle = document.getElementById('btnToggleArchiveList');
+
+      if (!box) return;
+      const count = state.archive30d.length;
+      if (count === 0) {
+        box.classList.add('hidden');
+        return;
+      }
+
+      box.classList.remove('hidden');
+      if (title) title.textContent = `Dữ liệu đã 30 ngày (${count} mục)`;
+      if (btnToggle) btnToggle.textContent = state.archiveExpanded ? 'Ẩn bớt' : 'Xem';
+
+      if (listEl) {
+        listEl.classList.toggle('hidden', !state.archiveExpanded);
+        if (state.archiveExpanded) {
+          listEl.innerHTML = state.archive30d.map(entry => `
+            <div class="bg-white rounded-xl p-2.5 border border-amber-200 text-xs space-y-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold text-hl-brown">${escapeHTML(entry.storeName)}</span>
+                <span class="text-[10px] font-semibold text-hl-brown/60">${formatDisplayDateTime(entry.visitedAt)}</span>
+              </div>
+              <p class="text-[11px] text-hl-brown/75">${escapeHTML(entry.crowdActual)} • ${escapeHTML(entry.socketActual)}</p>
+              ${entry.note ? `<p class="text-[11px] text-hl-brown/85 italic">“${escapeHTML(entry.note)}”</p>` : ''}
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function normalizeVietnamese(str) {
+      if (!str) return '';
+      return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .trim();
+    }
+
+    function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function getAllBaseStores() {
+      return [...DEFAULT_STORES, ...(Array.isArray(state.customStores) ? state.customStores : [])];
+    }
+
+    function getEnrichedStores() {
+      return getAllBaseStores().map(store => {
+        const socketOverride = state.socketOverrides[store.id];
+        const customName = state.nameOverrides[store.id];
+        const finalName = (typeof customName === 'string' && customName.trim()) ? customName.trim() : store.name;
+        const distance = state.userLocation
+          ? calculateDistanceKm(state.userLocation.lat, state.userLocation.lng, store.lat, store.lng)
+          : null;
+
+        return {
+          ...store,
+          originalName: store.name,
+          name: finalName,
+          isNameCustomized: Boolean(customName && customName.trim() && customName.trim() !== store.name),
+          socketLevel: socketOverride ? socketOverride.socketLevel : store.socketLevel,
+          socketNote: socketOverride ? socketOverride.socketNote : store.socketNote,
+          isSocketCustomized: Boolean(socketOverride),
+          distanceKm: distance
+        };
+      });
+    }
+
+    function openEditStoreNameModal(event, storeId) {
+      if (event) event.stopPropagation();
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+
+      document.getElementById('editStoreNameId').value = store.id;
+      document.getElementById('editStoreNameInput').value = store.name;
+      document.getElementById('editStoreFixedAddress').textContent = store.address;
+      document.getElementById('editStoreNameModal').classList.remove('hidden');
+      setTimeout(() => {
+        const inp = document.getElementById('editStoreNameInput');
+        if (inp) {
+          inp.focus();
+          inp.select();
+        }
+      }, 60);
+    }
+
+    function saveStoreNameOverride(event) {
+      event.preventDefault();
+      const storeId = document.getElementById('editStoreNameId').value;
+      const newName = document.getElementById('editStoreNameInput').value.trim();
+      if (!storeId || !newName) {
+        showToast('Vui lòng nhập tên quán!');
+        return;
+      }
+
+      const baseStore = getAllBaseStores().find(s => s.id === storeId);
+      if (baseStore && newName === baseStore.name) {
+        delete state.nameOverrides[storeId];
+      } else {
+        state.nameOverrides[storeId] = newName;
+      }
+
+      safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+      closeModal('editStoreNameModal');
+      renderStoreList();
+      populateStoreSelect();
+
+      if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) {
+        openStoreDetailModal(storeId);
+      }
+
+      showToast('Đã đổi tên quán (địa chỉ giữ nguyên)!');
+    }
+
+    function resetStoreNameOverride() {
+      const storeId = document.getElementById('editStoreNameId').value;
+      if (!storeId) return;
+      delete state.nameOverrides[storeId];
+      safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+
+      const baseStore = getAllBaseStores().find(s => s.id === storeId);
+      if (baseStore) {
+        document.getElementById('editStoreNameInput').value = baseStore.name;
+      }
+
+      closeModal('editStoreNameModal');
+      renderStoreList();
+      populateStoreSelect();
+
+      if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) {
+        openStoreDetailModal(storeId);
+      }
+
+      showToast('Đã khôi phục tên quán gốc!');
+    }
+
+    function evaluateStoreCrowd(store) {
+      const now = new Date();
+      const isWeekend = (now.getDay() === 0 || now.getDay() === 6);
+      const checkHourFloat = state.simulatedHour !== null
+        ? state.simulatedHour
+        : (now.getHours() + now.getMinutes() / 60);
+      const checkHourInt = Math.floor(checkHourFloat);
+
+      if (checkHourFloat < store.openHour || checkHourFloat >= store.closeHour) {
+        return {
+          status: 'closed',
+          label: 'Đã đóng cửa',
+          percent: 0,
+          badgeClass: 'bg-gray-200 text-gray-700',
+          dotClass: 'bg-gray-500',
+          isQuietOrModerate: false
+        };
+      }
+
+      const hourlyArray = isWeekend ? store.crowdWeekend : store.crowdWeekday;
+      const index = Math.max(0, Math.min(16, checkHourInt - 6));
+      const percent = hourlyArray[index] || 40;
+
+      if (percent <= 45) {
+        return {
+          status: 'quiet',
+          label: `Đang vắng (${percent}%)`,
+          percent,
+          badgeClass: 'bg-emerald-100 text-emerald-800 border border-emerald-200',
+          dotClass: 'bg-emerald-500',
+          isQuietOrModerate: true
+        };
+      } else if (percent <= 70) {
+        return {
+          status: 'moderate',
+          label: `Khách vừa (${percent}%)`,
+          percent,
+          badgeClass: 'bg-amber-100 text-amber-800 border border-amber-200',
+          dotClass: 'bg-amber-500',
+          isQuietOrModerate: true
+        };
+      } else {
+        return {
+          status: 'busy',
+          label: `Đông khách (${percent}%)`,
+          percent,
+          badgeClass: 'bg-red-100 text-hl-red border border-red-200',
+          dotClass: 'bg-hl-red',
+          isQuietOrModerate: false
+        };
+      }
+    }
+
+    function getSocketBadgeInfo(level) {
+      if (level === 'high') {
+        return { label: '⚡ Nhiều ổ cắm', className: 'bg-blue-50 text-blue-700 border border-blue-200' };
+      }
+      if (level === 'medium') {
+        return { label: '🔌 Khá nhiều ổ cắm', className: 'bg-slate-100 text-slate-700 border border-slate-200' };
+      }
+      return { label: '🪫 Ít ổ cắm', className: 'bg-orange-50 text-orange-700 border border-orange-200' };
+    }
+
+    function requestUserLocation() {
+      if (!navigator.geolocation) {
+        showBanner('error', 'Thiết bị không hỗ trợ GPS', 'Bạn vẫn có thể lọc quán theo khu vực bình thường.');
+        return;
+      }
+
+      const btnText = document.getElementById('gpsBtnText');
+      const gpsIcon = document.getElementById('gpsIcon');
+      btnText.textContent = 'Đang tìm...';
+      gpsIcon.classList.add('animate-spin');
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          gpsIcon.classList.remove('animate-spin');
+          btnText.textContent = 'Gần nhất ✓';
+          state.userLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
+          state.sortByDistance = true;
+          dismissBanner();
+          showToast('Đã sắp xếp các quán gần vị trí của bạn nhất!');
+          renderStoreList();
+        },
+        (error) => {
+          gpsIcon.classList.remove('animate-spin');
+          btnText.textContent = 'Gần tôi';
+          state.sortByDistance = false;
+          let title = 'Không thể lấy vị trí GPS';
+          let desc = 'Vui lòng chọn khu vực thủ công ở thanh lọc bên dưới.';
+          if (error.code === error.PERMISSION_DENIED) {
+            title = 'Bạn đã từ chối quyền truy cập Vị trí';
+            desc = 'Trên Chrome Android: Nhấn biểu tượng ổ khóa cạnh thanh địa chỉ > Quyền > Bật "Vị trí" rồi thử lại.';
+          }
+          showBanner('warning', title, desc);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+      );
+    }
+
+    function renderAreaChips() {
+      const container = document.getElementById('areaFilterChips');
+      container.innerHTML = AREAS.map(area => {
+        const isSelected = state.selectedArea === area;
+        return `
+          <button
+            onclick="selectArea('${area}')"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+              isSelected ? 'bg-hl-red text-white shadow-sm' : 'bg-white text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'
+            }"
+          >
+            ${area}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderTimeSimulatorChips() {
+      const container = document.getElementById('timeSimulatorChips');
+      const nowHour = new Date().getHours();
+      const presets = [
+        { label: `Bây giờ (${nowHour}h)`, val: null },
+        { label: '08:00', val: 8 },
+        { label: '10:30', val: 10.5 },
+        { label: '14:30', val: 14.5 },
+        { label: '19:30', val: 19.5 }
+      ];
+
+      container.innerHTML = presets.map(p => {
+        const isSelected = state.simulatedHour === p.val;
+        return `
+          <button
+            onclick="setSimulatedHour(${p.val})"
+            class="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors shrink-0 ${
+              isSelected ? 'bg-hl-red text-white' : 'bg-hl-sand text-hl-brown hover:bg-hl-brown/15'
+            }"
+          >
+            ${p.label}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function renderStoreList() {
+      const container = document.getElementById('storeListContainer');
+      const normalizedQuery = normalizeVietnamese(state.searchQuery);
+
+      let stores = getEnrichedStores().map(store => ({
+        ...store,
+        crowdInfo: evaluateStoreCrowd(store)
+      }));
+
+      if (state.selectedArea !== 'Tất cả') {
+        if (state.selectedArea === 'Bình Tân') {
+          stores = stores.filter(s => s.district === 'Bình Tân');
+        } else {
+          stores = stores.filter(s => s.area === state.selectedArea);
+        }
+      }
+
+      if (state.socketFilter === 'high') {
+        stores = stores.filter(s => s.socketLevel === 'high');
+      } else if (state.socketFilter === 'medium') {
+        stores = stores.filter(s => s.socketLevel === 'high' || s.socketLevel === 'medium');
+      }
+
+      if (state.quietOnly) {
+        stores = stores.filter(s => s.crowdInfo.isQuietOrModerate);
+      }
+
+      if (normalizedQuery) {
+        stores = stores.filter(s => {
+          const haystack = normalizeVietnamese(`${s.name} ${s.originalName || ''} ${s.address} ${s.area} ${s.district} ${s.socketNote}`);
+          return haystack.includes(normalizedQuery);
+        });
+      }
+
+      if (state.sortByDistance && state.userLocation) {
+        stores.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+      }
+
+      document.getElementById('resultCount').textContent = `${stores.length} quán`;
+
+      if (stores.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2.5">
+            <p class="text-sm font-bold text-hl-brown">Không tìm thấy quán phù hợp bộ lọc</p>
+            <button onclick="resetAllFilters()" class="mt-2 bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">
+              Đặt lại bộ lọc
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = stores.map(store => {
+        const socketBadge = getSocketBadgeInfo(store.socketLevel);
+        const visitCount = state.journal.filter(j => j.storeId === store.id).length;
+        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
+
+        return `
+          <article class="bg-white rounded-2xl p-4 border border-hl-brown/10 shadow-sm space-y-3 transition-all">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown">${store.area}</span>
+                ${store.distanceKm !== null ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-red/10 text-hl-red">📍 ${store.distanceKm.toFixed(1)} km</span>` : ''}
+                ${visitCount > 0 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">✓ Đã đi ${visitCount}x</span>` : ''}
+              </div>
+              <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1.5 ${store.crowdInfo.badgeClass}">
+                <i class="w-2 h-2 rounded-full ${store.crowdInfo.dotClass}"></i>
+                ${store.crowdInfo.label}
+              </span>
+            </div>
+
+            <div class="space-y-1">
+              <div class="flex items-start justify-between gap-2">
+                <h3 onclick="openStoreDetailModal('${store.id}')" class="text-[15px] font-extrabold text-hl-brown hover:text-hl-red transition-colors leading-snug cursor-pointer flex-1">
+                  ${escapeHTML(store.name)}
+                </h3>
+                <button
+                  type="button"
+                  onclick="openEditStoreNameModal(event, '${store.id}')"
+                  class="text-[11px] font-bold px-2 py-1 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown border border-hl-brown/15 shrink-0 flex items-center gap-1 transition-colors"
+                  title="Đổi tên quán (giữ nguyên địa chỉ)"
+                >
+                  <span>✏️ Edit</span>
+                </button>
+              </div>
+              <p onclick="openStoreDetailModal('${store.id}')" class="text-xs text-hl-brown/75 leading-relaxed cursor-pointer">${escapeHTML(store.address)}</p>
+            </div>
+
+            <div class="bg-hl-cream rounded-xl p-2.5 border border-hl-brown/10 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${socketBadge.className}">
+                  ${socketBadge.label} ${store.isSocketCustomized ? '(Đã cập nhật)' : ''}
+                </span>
+                <span class="text-[11px] font-semibold text-hl-brown/70">🕒 ${store.hoursText}</span>
+              </div>
+              <p class="text-xs text-hl-brown/85 leading-snug">${store.socketNote}</p>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-0.5">
+              <button onclick="openStoreDetailModal('${store.id}')" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-colors">
+                <span>📊 Biểu đồ giờ</span>
+              </button>
+              <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 transition-colors">
+                <span>🗺️ Maps Live</span>
+              </a>
+              <button onclick="openCheckinForStore('${store.id}')" class="bg-hl-red hover:bg-hl-redDark text-white font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs active:scale-95 transition-transform">
+                <span>✓ Đã tới</span>
+              </button>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function openStoreDetailModal(storeId) {
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+
+      state.activeModalStoreId = storeId;
+      const dayOfWeek = new Date().getDay();
+      state.modalChartDayType = (dayOfWeek === 0 || dayOfWeek === 6) ? 'weekend' : 'weekday';
+      const socketBadge = getSocketBadgeInfo(store.socketLevel);
+
+      document.getElementById('modalStoreArea').textContent = `${store.area} • ${store.district}`;
+      document.getElementById('modalStoreName').textContent = store.name;
+      document.getElementById('modalStoreAddress').textContent = store.address;
+      document.getElementById('modalStoreHours').textContent = store.hoursText;
+      document.getElementById('modalStoreType').textContent = store.storeType;
+      document.getElementById('modalStoreSocketLevel').textContent = socketBadge.label;
+      document.getElementById('modalStoreSocketNote').textContent = store.socketNote;
+
+      document.getElementById('btnEditNameModal').onclick = (e) => {
+        openEditStoreNameModal(e, store.id);
+      };
+      document.getElementById('modalGmapsLink').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
+      document.getElementById('modalBtnCheckin').onclick = () => {
+        closeModal('detailModal');
+        openCheckinForStore(store.id);
+      };
+      document.getElementById('btnEditSocketModal').onclick = () => {
+        closeModal('detailModal');
+        openSocketEditModal(store.id);
+      };
+
+      renderModalCrowdChart();
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function switchChartDayType(type) {
+      state.modalChartDayType = type;
+      renderModalCrowdChart();
+    }
+
+    function renderModalCrowdChart() {
+      const store = getEnrichedStores().find(s => s.id === state.activeModalStoreId);
+      if (!store) return;
+
+      const isWeekend = state.modalChartDayType === 'weekend';
+      const data = isWeekend ? store.crowdWeekend : store.crowdWeekday;
+      const currentHour = state.simulatedHour !== null ? Math.floor(state.simulatedHour) : new Date().getHours();
+
+      document.getElementById('modalChartDayType').textContent = isWeekend
+        ? 'Dự báo lưu lượng Cuối tuần (Thứ 7 - Chủ nhật)'
+        : 'Dự báo lưu lượng Ngày thường (Thứ 2 - Thứ 6)';
+
+      document.getElementById('btnChartWeekday').className = `px-2 py-1 rounded text-[11px] font-bold ${!isWeekend ? 'bg-hl-brown text-white' : 'text-hl-brown'}`;
+      document.getElementById('btnChartWeekend').className = `px-2 py-1 rounded text-[11px] font-bold ${isWeekend ? 'bg-hl-brown text-white' : 'text-hl-brown'}`;
+
+      const barsContainer = document.getElementById('crowdChartBars');
+      barsContainer.innerHTML = data.map((val, idx) => {
+        const hour = idx + 6;
+        const isCurrent = hour === currentHour;
+        let barColor = 'bg-emerald-500';
+        if (val === 0) barColor = 'bg-gray-200';
+        else if (val > 70) barColor = 'bg-hl-red';
+        else if (val > 45) barColor = 'bg-amber-500';
+
+        const heightPercent = val === 0 ? 6 : Math.max(12, val);
+        return `
+          <div class="flex-1 flex flex-col items-center justify-end h-full group relative">
+            ${isCurrent ? `<span class="absolute -top-4 text-[9px] font-extrabold text-hl-red">${hour}h</span>` : ''}
+            <div style="height: ${heightPercent}%" class="w-full rounded-t-sm transition-all ${barColor} ${isCurrent ? 'ring-2 ring-hl-brown ring-offset-1' : 'opacity-85'}"></div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function populateStoreSelect() {
+      document.getElementById('checkinStoreSelect').innerHTML = getEnrichedStores().map(s => `
+        <option value="${s.id}">${escapeHTML(s.name)} (${escapeHTML(s.area)})</option>
+      `).join('');
+    }
+
+    function getLocalDateTimeInputString() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      return now.toISOString().slice(0, 16);
+    }
+
+    function openCheckinForStore(storeId) {
+      populateStoreSelect();
+      document.getElementById('checkinStoreSelect').value = storeId;
+      document.getElementById('checkinDateTime').value = getLocalDateTimeInputString();
+      document.getElementById('checkoutDateTime').value = '';
+      document.getElementById('checkinNote').value = '';
+      document.getElementById('checkinModal').classList.remove('hidden');
+    }
+
+    function openQuickCheckinModal() {
+      populateStoreSelect();
+      document.getElementById('checkinDateTime').value = getLocalDateTimeInputString();
+      document.getElementById('checkoutDateTime').value = '';
+      document.getElementById('checkinNote').value = '';
+      document.getElementById('checkinModal').classList.remove('hidden');
+    }
+
+    function saveCheckinEntry(event) {
+      event.preventDefault();
+      const storeId = document.getElementById('checkinStoreSelect').value;
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+
+      const dateTime = document.getElementById('checkinDateTime').value;
+      const checkoutTime = document.getElementById('checkoutDateTime').value;
+      const crowdActual = document.getElementById('checkinCrowdActual').value;
+      const socketActual = document.getElementById('checkinSocketActual').value;
+      const note = document.getElementById('checkinNote').value.trim();
+
+      const parsedVisitedMs = Date.parse(dateTime);
+      const entryTs = Number.isNaN(parsedVisitedMs) ? Date.now() : parsedVisitedMs;
+
+      const newEntry = {
+        id: 'log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        storeId: store.id,
+        storeName: store.name,
+        storeArea: store.area,
+        visitedAt: dateTime,
+        checkoutAt: checkoutTime || null,
+        createdAtMs: entryTs,
+        crowdActual,
+        socketActual,
+        note
+      };
+
+      state.journal.unshift(newEntry);
+      safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+
+      closeModal('checkinModal');
+      updateJournalBadge();
+      renderStoreList();
+      renderJournalList();
+      showToast(`Đã lưu check-in tại ${store.name}!`);
+    }
+
+    function deleteJournalEntry(entryId) {
+      state.journal = state.journal.filter(item => item.id !== entryId);
+      safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+      updateJournalBadge();
+      renderStoreList();
+      renderJournalList();
+      showToast('Đã xóa mục nhật ký');
+    }
+
+    function checkoutJournalEntry(entryId) {
+      const idx = state.journal.findIndex(item => item.id === entryId);
+      if (idx === -1) return;
+      state.journal[idx].checkoutAt = getLocalDateTimeInputString();
+      safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+      renderJournalList();
+      showToast('Đã ghi nhận giờ Check-out!');
+    }
+
+    function renderJournalList() {
+      const container = document.getElementById('journalListContainer');
+      const total = state.journal.length;
+      const uniqueStores = new Set(state.journal.map(j => j.storeId)).size;
+
+      let favStoreName = 'Chưa có';
+      if (total > 0) {
+        const counts = {};
+        let maxCount = 0;
+        state.journal.forEach(j => {
+          counts[j.storeName] = (counts[j.storeName] || 0) + 1;
+          if (counts[j.storeName] > maxCount) {
+            maxCount = counts[j.storeName];
+            favStoreName = `${j.storeName.replace('Highlands Coffee ', '')} (${maxCount}x)`;
+          }
+        });
+      }
+
+      document.getElementById('statTotalVisits').textContent = total;
+      document.getElementById('statUniqueStores').textContent = uniqueStores;
+      document.getElementById('statFavStore').textContent = favStoreName;
+
+      if (total === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2">
+            <p class="text-sm font-bold text-hl-brown">Chưa có nhật ký mới nào</p>
+            <p class="text-xs text-hl-brown/70 leading-relaxed">
+              Bấm <strong>"+ Check-in"</strong> hoặc <strong>"✓ Đã tới"</strong> trên quán để ghi nhật ký mới.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.journal.map(entry => {
+        const formattedDate = formatDisplayDateTime(entry.visitedAt);
+        const formattedCheckout = entry.checkoutAt ? formatDisplayDateTime(entry.checkoutAt) : null;
+        return `
+          <div class="bg-white rounded-2xl p-4 border border-hl-brown/10 shadow-sm space-y-2">
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <span class="text-[11px] font-bold text-hl-red bg-hl-red/10 px-2 py-0.5 rounded-md">${entry.storeArea}</span>
+                <h4 class="text-sm font-extrabold text-hl-brown mt-1">${entry.storeName}</h4>
+                <p class="text-[11px] font-medium text-hl-brown/65 mt-0.5">
+                  🟢 Check-in: ${formattedDate}
+                  ${formattedCheckout ? `<br>🔴 Check-out: ${formattedCheckout}` : ''}
+                </p>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                ${!entry.checkoutAt ? `
+                  <button onclick="checkoutJournalEntry('${entry.id}')" class="text-[11px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-1 rounded-lg transition-colors">
+                    Check-out
+                  </button>
+                ` : ''}
+                <button onclick="deleteJournalEntry('${entry.id}')" class="text-xs text-hl-brown/45 hover:text-hl-red p-1.5" title="Xóa nhật ký này">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap gap-1.5 pt-0.5">
+              <span class="text-[11px] font-semibold bg-hl-cream text-hl-brown px-2.5 py-1 rounded-lg border border-hl-brown/10">${entry.crowdActual}</span>
+              <span class="text-[11px] font-semibold bg-hl-cream text-hl-brown px-2.5 py-1 rounded-lg border border-hl-brown/10">${entry.socketActual}</span>
+            </div>
+
+            ${entry.note ? `<p class="text-xs text-hl-brown/90 bg-hl-sand/60 p-2.5 rounded-xl leading-relaxed">“${escapeHTML(entry.note)}”</p>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openSocketEditModal(storeId) {
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+
+      document.getElementById('socketEditStoreId').value = store.id;
+      document.getElementById('socketModalStoreName').textContent = store.name;
+      document.getElementById('socketLevelSelect').value = store.socketLevel;
+      document.getElementById('socketNoteInput').value = store.socketNote;
+      document.getElementById('socketModal').classList.remove('hidden');
+    }
+
+    function saveSocketOverride(event) {
+      event.preventDefault();
+      const storeId = document.getElementById('socketEditStoreId').value;
+      const socketLevel = document.getElementById('socketLevelSelect').value;
+      const socketNote = document.getElementById('socketNoteInput').value.trim();
+
+      state.socketOverrides[storeId] = { socketLevel, socketNote };
+      safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
+
+      closeModal('socketModal');
+      renderStoreList();
+      showToast('Đã cập nhật thông tin ổ cắm của quán!');
+    }
+
+    function triggerFileDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function escapeCSVCell(val) {
+      const str = String(val == null ? '' : val).replace(/\r?\n/g, ' ');
+      if (str.includes(',') || str.includes('"') || str.includes(';')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+      }
+      return str;
+    }
+
+    function extractDateKey(isoStr) {
+      if (!isoStr) return 'unknown';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return String(isoStr).slice(0, 10);
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    }
+
+    function formatDateOnlyVN(dateKey) {
+      if (!dateKey || dateKey === 'unknown') return '';
+      const parts = dateKey.split('-');
+      if (parts.length !== 3) return dateKey;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function formatTimeOnlyVN(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function buildConsolidatedJournalForExport(journalList) {
+      if (!Array.isArray(journalList) || journalList.length === 0) return [];
+
+      const chronological = [...journalList].sort((a, b) => parseEntryTimestampMs(a, 0) - parseEntryTimestampMs(b, 0));
+      const groups = [];
+
+      for (const entry of chronological) {
+        const dateKey = extractDateKey(entry.visitedAt);
+        const prevGroup = groups.length > 0 ? groups[groups.length - 1] : null;
+        const isConsecutiveSameStoreSameDay = prevGroup
+          && prevGroup.storeId === entry.storeId
+          && prevGroup.dateKey === dateKey;
+
+        if (isConsecutiveSameStoreSameDay) {
+          prevGroup.entries.push(entry);
+        } else {
+          groups.push({
+            storeId: entry.storeId,
+            storeName: entry.storeName,
+            storeArea: entry.storeArea,
+            dateKey,
+            entries: [entry]
+          });
+        }
+      }
+
+      groups.reverse();
+
+      return groups.map(g => {
+        const list = g.entries;
+        const checkinTimes = list.map(e => formatTimeOnlyVN(e.visitedAt)).filter(Boolean);
+        const checkoutTimes = list.map(e => formatTimeOnlyVN(e.checkoutAt)).filter(Boolean);
+        const checkinCount = list.length;
+        const checkoutCount = checkoutTimes.length;
+        const visitCount = Math.max(checkinCount, checkoutCount);
+        const firstCheckinTime = checkinTimes[0] || '';
+        const lastCheckinTime = checkinTimes[checkinTimes.length - 1] || '';
+        const lastCheckoutTime = checkoutTimes[checkoutTimes.length - 1] || '';
+        const dateLabel = formatDateOnlyVN(g.dateKey);
+
+        const timeSummary = visitCount === 1
+          ? `${firstCheckinTime} • ${dateLabel}`
+          : `${firstCheckinTime} → ${lastCheckoutTime || lastCheckinTime} • ${dateLabel} (Check-in: ${checkinTimes.join(', ')})`;
+
+        const checkoutSummary = checkoutCount > 0
+          ? (checkoutCount === 1 ? `${checkoutTimes[0]} • ${dateLabel}` : `${lastCheckoutTime} • ${dateLabel} (${checkoutCount} lần)`)
+          : 'Chưa check-out';
+
+        const visitCountLabel = checkoutCount > 0
+          ? `${visitCount} lần (${checkinCount} vào / ${checkoutCount} ra)`
+          : `${visitCount} lần (${checkinCount} vào)`;
+
+        return {
+          storeName: g.storeName,
+          storeArea: g.storeArea,
+          timeSummary,
+          checkoutSummary,
+          visitCount,
+          visitCountLabel,
+          crowdActual: [...new Set(list.map(e => e.crowdActual).filter(Boolean))].join(' / '),
+          socketActual: [...new Set(list.map(e => e.socketActual).filter(Boolean))].join(' / '),
+          note: [...new Set(list.map(e => (e.note || '').trim()).filter(Boolean))].join(' | ')
+        };
+      });
+    }
+
+    function exportExcelCSV() {
+      const sourceData = [...state.journal, ...state.archive30d];
+      if (sourceData.length === 0) {
+        showToast('Chưa có dữ liệu nhật ký để xuất Excel!');
+        return;
+      }
+      const consolidated = buildConsolidatedJournalForExport(sourceData);
+      const headers = ['STT', 'Thời gian check-in', 'Thời gian check-out', 'Tên chi nhánh Highlands', 'Khu vực', 'Số lượt vào trong ngày', 'Độ đông thực tế', 'Tình trạng ổ cắm', 'Ghi chú'];
+      const rows = consolidated.map((item, idx) => [
+        idx + 1, item.timeSummary, item.checkoutSummary, item.storeName, item.storeArea,
+        item.visitCountLabel, item.crowdActual, item.socketActual, item.note || ''
+      ]);
+      const csvContent = '\uFEFF' + [headers.map(escapeCSVCell).join(','), ...rows.map(r => r.map(escapeCSVCell).join(','))].join('\r\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      triggerFileDownload(blob, `Nhat-ky-Highlands-${new Date().toISOString().slice(0, 10)}.csv`);
+      showToast('Đã xuất file Excel (.csv)!');
+    }
+
+    function exportTextReport() {
+      const sourceData = [...state.journal, ...state.archive30d];
+      if (sourceData.length === 0) {
+        showToast('Chưa có dữ liệu nhật ký để xuất file Text!');
+        return;
+      }
+      const consolidated = buildConsolidatedJournalForExport(sourceData);
+      const lines = [
+        '==================================================',
+        'NHẬT KÝ CHECK-IN HIGHLANDS COFFEE HCM',
+        `Ngày xuất: ${formatDisplayDateTime(getLocalDateTimeInputString())}`,
+        '==================================================',
+        ''
+      ];
+      consolidated.forEach((item, idx) => {
+        lines.push(`${idx + 1}. ${item.storeName} (${item.storeArea})`);
+        lines.push(`   - Số lượt: ${item.visitCountLabel}`);
+        lines.push(`   - Check-in: ${item.timeSummary}`);
+        lines.push(`   - Check-out: ${item.checkoutSummary}`);
+        lines.push(`   - Độ đông: ${item.crowdActual} | Ổ cắm: ${item.socketActual}`);
+        if (item.note) lines.push(`   - Ghi chú: ${item.note}`);
+        lines.push('--------------------------------------------------');
+      });
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8;' });
+      triggerFileDownload(blob, `Nhat-ky-Highlands-${new Date().toISOString().slice(0, 10)}.txt`);
+      showToast('Đã xuất file Text (.txt)!');
+    }
+
+    function createBackupPayload() {
+      return {
+        app: 'Highlands Tracker HCM',
+        version: 'v4.3',
+        exportedAt: new Date().toISOString(),
+        journal: state.journal,
+        archive30d: state.archive30d,
+        customStores: state.customStores,
+        socketOverrides: state.socketOverrides,
+        nameOverrides: state.nameOverrides
+      };
+    }
+
+    function exportBackupData(notifySyncHint = false) {
+      try {
+        const filename = `highlands-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        const blob = new Blob([JSON.stringify(createBackupPayload(), null, 2)], { type: 'application/json' });
+        triggerFileDownload(blob, filename);
+        showToast(notifySyncHint
+          ? 'Đã xuất file Backup! Gửi file này sang thiết bị kia rồi bấm "Nạp / Restore Backup".'
+          : 'Đã tải xuống file Backup (.json)!'
+        );
+      } catch (err) {
+        showBanner('error', 'Không thể xuất file Backup', 'Trình duyệt chặn tải file tự động. Vui lòng thử lại trên Chrome.');
+      }
+    }
+
+    async function shareOrExportBackup() {
+      const filename = `highlands-tracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      const jsonStr = JSON.stringify(createBackupPayload(), null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+
+      try {
+        if (navigator.share && typeof File !== 'undefined') {
+          const fileObj = new File([blob], filename, { type: 'application/json' });
+          if (!navigator.canShare || navigator.canShare({ files: [fileObj] })) {
+            await navigator.share({
+              title: 'Highlands Tracker Backup',
+              text: 'File sao lưu & đồng bộ nhật ký Highlands Tracker HCM',
+              files: [fileObj]
+            });
+            showToast('Đã chia sẻ file Backup thành công!');
+            return;
+          }
+        }
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+      }
+
+      triggerFileDownload(blob, filename);
+      showToast('Đã tải file Backup (.json) để bạn gửi qua Zalo/Drive/USB!');
+    }
+
+    function deduplicateEntries(existingList, incomingList) {
+      const map = new Map();
+      const makeKey = (item) => item.id || `${item.storeId || ''}__${item.visitedAt || ''}`;
+
+      for (const item of (existingList || [])) {
+        map.set(makeKey(item), Object.assign({}, item, {
+          createdAtMs: parseEntryTimestampMs(item, Date.now())
+        }));
+      }
+      for (const item of (incomingList || [])) {
+        const k = makeKey(item);
+        const normalized = Object.assign({}, item, {
+          createdAtMs: parseEntryTimestampMs(item, Date.now())
+        });
+        if (!map.has(k)) {
+          map.set(k, normalized);
+        } else {
+          const prev = map.get(k);
+          map.set(k, Object.assign({}, prev, normalized, {
+            checkoutAt: normalized.checkoutAt || prev.checkoutAt || null
+          }));
+        }
+      }
+
+      return Array.from(map.values()).sort((a, b) => parseEntryTimestampMs(b, 0) - parseEntryTimestampMs(a, 0));
+    }
+
+    function importBackupData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const modeEl = document.querySelector('input[name="restoreMode"]:checked');
+      const mode = modeEl ? modeEl.value : 'merge';
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (!parsed || (!Array.isArray(parsed.journal) && !Array.isArray(parsed.archive30d))) {
+            throw new Error('Cấu trúc file không hợp lệ');
+          }
+
+          const incomingJournal = Array.isArray(parsed.journal) ? parsed.journal : [];
+          const incomingArchive = Array.isArray(parsed.archive30d) ? parsed.archive30d : [];
+          const incomingStores = Array.isArray(parsed.customStores) ? parsed.customStores : [];
+
+          if (mode === 'replace') {
+            state.journal = incomingJournal.map(i => Object.assign({}, i, { createdAtMs: parseEntryTimestampMs(i, Date.now()) }));
+            state.archive30d = incomingArchive.map(i => Object.assign({}, i, { createdAtMs: parseEntryTimestampMs(i, Date.now()) }));
+            state.customStores = incomingStores;
+            state.socketOverrides = parsed.socketOverrides || {};
+            state.nameOverrides = parsed.nameOverrides || {};
+          } else {
+            state.journal = deduplicateEntries(state.journal, incomingJournal);
+            state.archive30d = deduplicateEntries(state.archive30d, incomingArchive);
+            state.customStores = mergeCustomStores(state.customStores, incomingStores);
+            state.socketOverrides = Object.assign({}, state.socketOverrides, parsed.socketOverrides || {});
+            state.nameOverrides = Object.assign({}, state.nameOverrides, parsed.nameOverrides || {});
+          }
+
+          const check30d = evaluate30DayPromptOnOpen(state.journal, Date.now());
+          state.journal = check30d.active;
+          state.pendingExpired30d = check30d.expired;
+
+          safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+          safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
+          safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
+          safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
+          safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+
+          updateJournalBadge();
+          renderStoreList();
+          renderJournalList();
+          renderRetentionUI();
+
+          if (state.pendingExpired30d.length > 0) {
+            openRetentionPromptModal();
+          }
+
+          showToast(mode === 'replace'
+            ? `Đã ghi đè & khôi phục ${state.journal.length} nhật ký mới!`
+            : `Đã đồng bộ & gộp dữ liệu thành công (${state.journal.length} nhật ký mới)!`
+          );
+        } catch (err) {
+          showBanner('error', 'File Backup không hợp lệ', 'Vui lòng chọn đúng file .json đã xuất từ Highlands Tracker HCM.');
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      document.getElementById('tabExplore').classList.toggle('hidden', tabName !== 'explore');
+      document.getElementById('tabJournal').classList.toggle('hidden', tabName !== 'journal');
+      document.getElementById('tabSettings').classList.toggle('hidden', tabName !== 'settings');
+      document.getElementById('searchBarContainer').classList.toggle('hidden', tabName !== 'explore');
+
+      const navMap = { explore: 'navExplore', journal: 'navJournal', settings: 'navSettings' };
+      Object.entries(navMap).forEach(([key, elId]) => {
+        const el = document.getElementById(elId);
+        if (key === tabName) {
+          el.classList.remove('text-hl-brown/55', 'font-medium');
+          el.classList.add('text-hl-red', 'font-bold');
+        } else {
+          el.classList.add('text-hl-brown/55', 'font-medium');
+          el.classList.remove('text-hl-red', 'font-bold');
+        }
+      });
+
+      if (tabName === 'journal') {
+        renderJournalList();
+        renderRetentionUI();
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function selectArea(area) {
+      state.selectedArea = area;
+      renderAreaChips();
+      renderStoreList();
+    }
+
+    function toggleFilter(type, value) {
+      if (type === 'socket') {
+        state.socketFilter = value;
+        document.querySelectorAll('.socket-chip').forEach(btn => {
+          const isMatch = btn.getAttribute('data-socket') === value;
+          btn.className = `socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            isMatch ? 'bg-hl-brown text-white' : 'bg-hl-sand text-hl-brown hover:bg-hl-brown/15'
+          }`;
+        });
+      }
+      renderStoreList();
+    }
+
+    function toggleQuietOnly() {
+      state.quietOnly = !state.quietOnly;
+      const btn = document.getElementById('btnQuietOnly');
+      btn.className = `px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
+        state.quietOnly ? 'bg-emerald-600 text-white' : 'bg-hl-sand text-hl-brown hover:bg-hl-brown/15'
+      }`;
+      renderStoreList();
+    }
+
+    function setSimulatedHour(hourVal) {
+      state.simulatedHour = hourVal;
+      renderTimeSimulatorChips();
+      renderStoreList();
+    }
+
+    function handleSearchInput(val) {
+      state.searchQuery = val;
+      document.getElementById('btnClearSearch').classList.toggle('hidden', !val);
+      renderStoreList();
+    }
+
+    function clearSearch() {
+      state.searchQuery = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('btnClearSearch').classList.add('hidden');
+      renderStoreList();
+    }
+
+    function resetAllFilters() {
+      state.selectedArea = 'Tất cả';
+      state.socketFilter = 'all';
+      state.quietOnly = false;
+      state.simulatedHour = null;
+      clearSearch();
+      renderAreaChips();
+      toggleFilter('socket', 'all');
+      document.getElementById('btnQuietOnly').className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15 flex items-center gap-1';
+      renderTimeSimulatorChips();
+      renderStoreList();
+    }
+
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.add('hidden');
+    }
+
+    function updateJournalBadge() {
+      const badge = document.getElementById('journalBadge');
+      const count = state.journal.length;
+      badge.textContent = count;
+      badge.classList.toggle('hidden', count === 0);
+    }
+
+    function formatDisplayDateTime(isoLocalStr) {
+      if (!isoLocalStr) return '';
+      try {
+        const d = new Date(isoLocalStr);
+        if (isNaN(d.getTime())) return isoLocalStr;
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(d.getHours())}:${pad(d.getMinutes())} • ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+      } catch (e) {
+        return isoLocalStr;
+      }
+    }
+
+    function escapeHTML(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showBanner(type, title, desc) {
+      const banner = document.getElementById('alertBanner');
+      const box = document.getElementById('alertBannerBox');
+      const icon = document.getElementById('alertBannerIcon');
+
+      document.getElementById('alertBannerTitle').textContent = title;
+      document.getElementById('alertBannerDesc').textContent = desc;
+
+      if (type === 'error') {
+        box.className = 'rounded-xl p-3 text-xs flex items-start gap-2.5 border shadow-sm bg-red-50 border-red-200 text-red-900';
+        icon.textContent = '⚠️';
+      } else {
+        box.className = 'rounded-xl p-3 text-xs flex items-start gap-2.5 border shadow-sm bg-amber-50 border-amber-200 text-amber-900';
+        icon.textContent = '💡';
+      }
+      banner.classList.remove('hidden');
+    }
+
+    function dismissBanner() {
+      document.getElementById('alertBanner').classList.add('hidden');
+    }
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const toast = document.getElementById('toastNotification');
+      document.getElementById('toastText').textContent = msg;
+      toast.classList.remove('hidden');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2800);
+    }
+
+    function mergeCustomStores(existingList, incomingList) {
+      const map = new Map();
+      for (const s of (existingList || [])) {
+        if (s && s.id) map.set(s.id, s);
+      }
+      for (const s of (incomingList || [])) {
+        if (s && s.id) map.set(s.id, s);
+      }
+      return Array.from(map.values());
+    }
+
+    function generateEstimatedCrowdProfile(storeType) {
+      if (storeType === 'Trung tâm thương mại') {
+        return {
+          weekday: [0, 0, 25, 35, 45, 60, 75, 70, 55, 50, 55, 70, 85, 90, 85, 65, 20],
+          weekend: [0, 0, 35, 50, 75, 85, 95, 95, 90, 90, 95, 95, 95, 95, 90, 75, 25]
+        };
+      }
+      if (storeType === 'Khu dân cư') {
+        return {
+          weekday: [15, 40, 60, 55, 40, 35, 50, 45, 30, 30, 40, 50, 60, 70, 65, 45, 20],
+          weekend: [20, 45, 70, 75, 60, 50, 45, 45, 45, 50, 60, 70, 75, 75, 70, 50, 25]
+        };
+      }
+      if (storeType === 'Streetfront mặt tiền') {
+        return {
+          weekday: [20, 45, 70, 65, 48, 42, 62, 58, 38, 32, 42, 52, 62, 78, 78, 58, 28],
+          weekend: [22, 48, 78, 82, 72, 62, 58, 58, 58, 62, 72, 78, 82, 88, 82, 62, 32]
+        };
+      }
+      return {
+        weekday: [22, 50, 78, 70, 50, 45, 65, 60, 40, 35, 45, 55, 65, 80, 82, 60, 30],
+        weekend: [25, 52, 80, 85, 72, 62, 58, 58, 58, 62, 72, 78, 82, 88, 85, 65, 35]
+      };
+    }
+
+    function inferDistrictFromText(text) {
+      const norm = normalizeVietnamese(text || '');
+      const known = [
+        { key: 'binh tan', label: 'Bình Tân' },
+        { key: 'tan phu', label: 'Tân Phú' },
+        { key: 'quan 5', label: 'Quận 5' },
+        { key: 'q.5', label: 'Quận 5' },
+        { key: 'quan 6', label: 'Quận 6' },
+        { key: 'q.6', label: 'Quận 6' },
+        { key: 'quan 1', label: 'Quận 1' },
+        { key: 'q.1', label: 'Quận 1' },
+        { key: 'quan 3', label: 'Quận 3' },
+        { key: 'q.3', label: 'Quận 3' },
+        { key: 'quan 10', label: 'Quận 10' },
+        { key: 'phu nhuan', label: 'Phú Nhuận' },
+        { key: 'binh thanh', label: 'Bình Thạnh' },
+        { key: 'go vap', label: 'Gò Vấp' },
+        { key: 'thu duc', label: 'TP. Thủ Đức' }
+      ];
+      for (const item of known) {
+        if (norm.includes(item.key)) return item.label;
+      }
+      return '';
+    }
+
+    function parseGoogleMapsSmartInput(rawText) {
+      const text = String(rawText || '').trim();
+      const result = {
+        name: '',
+        address: '',
+        district: '',
+        area: '',
+        lat: null,
+        lng: null,
+        matchedParts: []
+      };
+      if (!text) return result;
+
+      const atMatch = text.match(/@(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/);
+      const bangMatch = text.match(/!3d(-?\d{1,2}\.\d+)!4d(-?\d{1,3}\.\d+)/);
+      const queryCoordMatch = text.match(/[?&](?:q|query|ll|center)=(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)/i);
+      const rawPairMatch = text.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
+
+      const coordMatch = atMatch || bangMatch || queryCoordMatch || rawPairMatch;
+      if (coordMatch) {
+        const latVal = parseFloat(coordMatch[1]);
+        const lngVal = parseFloat(coordMatch[2]);
+        if (!Number.isNaN(latVal) && !Number.isNaN(lngVal) && Math.abs(latVal) <= 90 && Math.abs(lngVal) <= 180) {
+          result.lat = latVal;
+          result.lng = lngVal;
+          result.matchedParts.push(`tọa độ ${latVal.toFixed(4)}, ${lngVal.toFixed(4)}`);
+        }
+      }
+
+      const placeMatch = text.match(/\/maps\/place\/([^/?#@]+)/i);
+      if (placeMatch && placeMatch[1]) {
+        const decoded = decodeURIComponent(placeMatch[1].replace(/\+/g, ' ')).trim();
+        if (decoded) {
+          result.name = decoded;
+          result.matchedParts.push('tên từ link Maps');
+        }
+      } else if (text.includes('google.com/maps') || text.includes('goo.gl/maps') || text.includes('maps.app.goo.gl')) {
+        const qParam = text.match(/[?&]q=([^&]+)/i);
+        if (qParam && qParam[1] && !/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(decodeURIComponent(qParam[1]))) {
+          result.address = decodeURIComponent(qParam[1].replace(/\+/g, ' ')).trim();
+          result.matchedParts.push('địa chỉ/từ khóa từ link');
+        }
+      } else if (!text.startsWith('http')) {
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length >= 1 && !/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(lines[0])) {
+          result.name = lines[0];
+          result.matchedParts.push('tên quán');
+        }
+        if (lines.length >= 2) {
+          result.address = lines.slice(1).join(', ');
+          result.matchedParts.push('địa chỉ');
+        } else if (lines.length === 1 && !result.name && lines[0].includes(',')) {
+          result.address = lines[0];
+          result.matchedParts.push('địa chỉ');
+        }
+      }
+
+      const detectedDistrict = inferDistrictFromText(`${result.name} ${result.address} ${text}`);
+      if (detectedDistrict) {
+        result.district = detectedDistrict;
+        result.area = detectedDistrict;
+        result.matchedParts.push(`khu vực ${detectedDistrict}`);
+      }
+
+      return result;
+    }
+
+    function applyParsedGoogleData(parsed, notify = false) {
+      if (!parsed) return;
+      if (parsed.name) document.getElementById('newStoreName').value = parsed.name;
+      if (parsed.address) document.getElementById('newStoreAddress').value = parsed.address;
+      if (parsed.district) document.getElementById('newStoreDistrict').value = parsed.district;
+      if (parsed.area) document.getElementById('newStoreArea').value = parsed.area;
+      if (parsed.lat !== null) document.getElementById('newStoreLat').value = parsed.lat;
+      if (parsed.lng !== null) document.getElementById('newStoreLng').value = parsed.lng;
+
+      const statusEl = document.getElementById('gmapsParseStatus');
+      if (statusEl) {
+        if (parsed.matchedParts.length > 0) {
+          statusEl.textContent = `✓ Đã nhận diện: ${parsed.matchedParts.join(' • ')}. Kiểm tra lại tên/địa chỉ rồi lưu.`;
+          statusEl.className = 'text-[11px] font-bold text-emerald-700';
+        } else {
+          statusEl.textContent = 'Chưa tách được tên/tọa độ tự động từ chuỗi này. Bạn có thể điền tên & địa chỉ bên dưới.';
+          statusEl.className = 'text-[11px] font-semibold text-amber-800';
+        }
+      }
+      if (notify && parsed.matchedParts.length > 0) {
+        showToast('Đã tự điền thông tin từ Google Maps!');
+      }
+    }
+
+    function handleSmartGoogleInput(val) {
+      const parsed = parseGoogleMapsSmartInput(val);
+      applyParsedGoogleData(parsed, false);
+    }
+
+    async function pasteFromClipboardAndParse() {
+      try {
+        if (!navigator.clipboard || !navigator.clipboard.readText) {
+          showToast('Hãy dán trực tiếp (Ctrl+V / Nhấn giữ Dán) vào ô bên trên!');
+          document.getElementById('gmapsSmartInput').focus();
+          return;
+        }
+        const clipText = await navigator.clipboard.readText();
+        if (!clipText || !clipText.trim()) {
+          showToast('Clipboard đang trống, hãy sao chép link/tọa độ trước!');
+          return;
+        }
+        const inputEl = document.getElementById('gmapsSmartInput');
+        inputEl.value = clipText.trim();
+        const parsed = parseGoogleMapsSmartInput(clipText.trim());
+        applyParsedGoogleData(parsed, true);
+      } catch (err) {
+        showToast('Trình duyệt yêu cầu dán thủ công vào ô bên trên.');
+        document.getElementById('gmapsSmartInput').focus();
+      }
+    }
+
+    function openGoogleMapsSearchHelper() {
+      const currentName = document.getElementById('newStoreName').value.trim() || 'Highlands Coffee';
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(currentName)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function openAddStoreModal() {
+      document.getElementById('gmapsSmartInput').value = '';
+      document.getElementById('newStoreName').value = '';
+      document.getElementById('newStoreAddress').value = '';
+      document.getElementById('newStoreArea').value = state.selectedArea !== 'Tất cả' ? state.selectedArea : 'Khu Tên Lửa';
+      document.getElementById('newStoreDistrict').value = state.selectedArea === 'Tân Phú' ? 'Tân Phú' : (state.selectedArea === 'Quận 5' ? 'Quận 5' : (state.selectedArea === 'Quận 6' ? 'Quận 6' : 'Bình Tân'));
+      document.getElementById('newStoreLat').value = state.userLocation ? state.userLocation.lat.toFixed(4) : '10.7443';
+      document.getElementById('newStoreLng').value = state.userLocation ? state.userLocation.lng.toFixed(4) : '106.6143';
+      document.getElementById('newStoreType').value = 'Streetfront 2 tầng';
+      document.getElementById('newStoreHoursPreset').value = '06:30 - 23:00|6.5|23.0';
+      document.getElementById('newStoreSocketLevel').value = 'high';
+      document.getElementById('newStoreSocketNote').value = 'Ổ cắm dọc tường / bàn làm việc.';
+      document.getElementById('gmapsParseStatus').textContent = 'Hỗ trợ link chứa tên quán, @lat,lng, ?q=lat,lng, !3d...!4d... hoặc tọa độ trực tiếp.';
+      document.getElementById('gmapsParseStatus').className = 'text-[11px] font-semibold text-hl-brown/70';
+      document.getElementById('addStoreModal').classList.remove('hidden');
+    }
+
+    function saveCustomStore(event) {
+      event.preventDefault();
+      const name = document.getElementById('newStoreName').value.trim();
+      const address = document.getElementById('newStoreAddress').value.trim();
+      if (!name || !address) {
+        showToast('Vui lòng nhập đầy đủ Tên quán và Địa chỉ!');
+        return;
+      }
+
+      const area = document.getElementById('newStoreArea').value.trim() || 'Khu vực khác';
+      const district = document.getElementById('newStoreDistrict').value.trim() || area;
+      const latRaw = parseFloat(document.getElementById('newStoreLat').value);
+      const lngRaw = parseFloat(document.getElementById('newStoreLng').value);
+      const lat = !Number.isNaN(latRaw) ? latRaw : 10.7769;
+      const lng = !Number.isNaN(lngRaw) ? lngRaw : 106.7009;
+
+      const storeType = document.getElementById('newStoreType').value;
+      const hoursParts = document.getElementById('newStoreHoursPreset').value.split('|');
+      const hoursText = hoursParts[0] || '06:30 - 23:00';
+      const openHour = parseFloat(hoursParts[1]) || 6.5;
+      const closeHour = parseFloat(hoursParts[2]) || 23.0;
+
+      const socketLevel = document.getElementById('newStoreSocketLevel').value;
+      const socketNote = document.getElementById('newStoreSocketNote').value.trim() || 'Ổ cắm điện khu vực bàn làm việc.';
+      const profile = generateEstimatedCrowdProfile(storeType);
+
+      const newStore = {
+        id: 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+        name,
+        area,
+        district,
+        address,
+        lat,
+        lng,
+        openHour,
+        closeHour,
+        hoursText,
+        storeType,
+        socketLevel,
+        socketNote,
+        crowdWeekday: profile.weekday,
+        crowdWeekend: profile.weekend,
+        isCustom: true
+      };
+
+      state.customStores.unshift(newStore);
+      safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
+
+      closeModal('addStoreModal');
+      renderStoreList();
+      showToast(`Đã thêm "${name}" & tạo biểu đồ giờ!`);
+    }
+
+    let liveClockTimer = null;
+    let lastAutoRefreshMinuteKey = null;
+
+    function formatLiveClockVN(now = new Date()) {
+      const pad = n => String(n).padStart(2, '0');
+      const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      const dayLabel = days[now.getDay()];
+      const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const dateStr = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}`;
+      return `${timeStr} • ${dayLabel} ${dateStr}`;
+    }
+
+    function updateRealtimeClock() {
+      const now = new Date();
+      const clockEl = document.getElementById('liveClockText');
+      if (clockEl) {
+        clockEl.textContent = formatLiveClockVN(now);
+      }
+
+      const minuteKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+      if (minuteKey !== lastAutoRefreshMinuteKey) {
+        lastAutoRefreshMinuteKey = minuteKey;
+        renderTimeSimulatorChips();
+        if (state.activeTab === 'explore' && state.simulatedHour === null) {
+          renderStoreList();
+        }
+        if (state.activeTab === 'explore' && !document.getElementById('detailModal').classList.contains('hidden')) {
+          renderModalCrowdChart();
+        }
+      }
+    }
+
+    function startRealtimeClock() {
+      updateRealtimeClock();
+      if (liveClockTimer) clearInterval(liveClockTimer);
+      liveClockTimer = setInterval(updateRealtimeClock, 1000);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!isStorageAvailable()) {
+        showBanner(
+          'warning',
+          'Đang ở chế độ hạn chế lưu trữ',
+          'Trình duyệt đang tắt LocalStorage (hoặc dùng Tab ẩn danh). Hãy dùng Xuất Backup JSON để lưu dữ liệu.'
+        );
+      }
+
+      const rawJournal = safeLoadJSON(STORAGE_KEYS.JOURNAL, []);
+      state.archive30d = safeLoadJSON(STORAGE_KEYS.ARCHIVE_30D, []);
+      const loadedCustomStores = safeLoadJSON(STORAGE_KEYS.CUSTOM_STORES, []);
+      state.customStores = Array.isArray(loadedCustomStores) ? loadedCustomStores : [];
+      state.socketOverrides = safeLoadJSON(STORAGE_KEYS.SOCKET_OVERRIDES, {});
+      state.nameOverrides = safeLoadJSON(STORAGE_KEYS.NAME_OVERRIDES, {});
+
+      const check30d = evaluate30DayPromptOnOpen(rawJournal, Date.now());
+      state.journal = check30d.active;
+      state.pendingExpired30d = check30d.expired;
+
+      safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
+
+      renderAreaChips();
+      renderTimeSimulatorChips();
+      updateJournalBadge();
+      renderStoreList();
+      renderJournalList();
+      renderRetentionUI();
+
+      if (state.pendingExpired30d.length > 0) {
+        openRetentionPromptModal();
+      }
+
+      startRealtimeClock();
+    });
+  </script>
+</body>
+</html>
