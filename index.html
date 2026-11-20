@@ -114,7 +114,7 @@
           <svg id="gpsIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.3" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41M12 8a4 4 0 100 8 4 4 0 000-8z"/>
           </svg>
-          <span id="gpsBtnText">Gần tôi</span>
+          <span id="gpsBtnText">Tìm ✓</span>
         </button>
       </div>
 
@@ -224,9 +224,8 @@
           <button onclick="toggleFilter('socket', 'medium')" data-socket="medium" class="socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15">
             🔌 Khá/Trung bình
           </button>
-          <button onclick="toggleQuietOnly()" id="btnQuietOnly" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15 flex items-center gap-1">
-            <span>🍃 Đang vắng/vừa</span>
-          </button>
+          <!-- Thanh trạng thái độ đông (thay cho nút "Đang vắng/vừa") + đếm số quán -->
+          <div id="crowdStatusChips" class="w-full flex flex-wrap items-center gap-1.5"></div>
         </div>
 
         <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-hl-brown/10">
@@ -1228,7 +1227,7 @@
       highlightedBrand: null,
       socketFilter: 'all',
       sizeFilter: 'all',
-      quietOnly: false,
+      crowdFilter: 'all', // 'all' | 'quiet' | 'moderate' | 'busy'
       searchQuery: '',
       simulatedHour: null,
       userLocation: null,
@@ -1325,10 +1324,9 @@
         .replace(/\s+/g, ' ')
         .trim();
 
-      let score = 0; // Dương -> thiên về Lớn; Âm -> thiên về Nhỏ; Khoảng [-1, 1] -> Vừa
+      let score = 0;
       const signals = [];
 
-      // 1. Tín hiệu từ loại hình quán (storeType)
       if (storeType === 'Streetfront không gian lớn') {
         score += 2.0;
         signals.push('loại hình không gian lớn (+2)');
@@ -1345,7 +1343,6 @@
         signals.push('mặt tiền tiêu chuẩn');
       }
 
-      // 2. Từ khóa mạnh chỉ quy mô NHỎ / GỌN
       const smallKeywords = [
         { kw: /\b(ki-?ot|kios|mini|nho|nho gon|ti hon|xe day|take away|takeaway|hem nho|trong hem|tang lung)\b/, weight: -2.2, label: 'từ khóa gọn/nhỏ' }
       ];
@@ -1357,7 +1354,6 @@
         }
       }
 
-      // 3. Từ khóa mạnh chỉ quy mô LỚN / NHIỀU TẦNG / SÂN VƯỜN
       const largeKeywords = [
         { kw: /\b([23456]\s*tang|[23456]\s*lau|nhieu tang|nhieu lau|san vuon|garden|biet thu|villa|rong rai|mat bang lon|2 mat tien|goc 2 mat tien)\b/, weight: 2.2, label: 'từ khóa nhiều tầng/rộng/sân vườn' }
       ];
@@ -1369,13 +1365,11 @@
         }
       }
 
-      // 4. Nhận diện số nhà ghép nhiều căn (ví dụ: 183-185, 142-144, 110-112)
       if (/\b\d{1,4}\s*[-–]\s*\d{1,4}\b/.test(combinedNorm)) {
         score += 1.1;
         signals.push('số nhà ghép nhiều căn (+1.1)');
       }
 
-      // 5. Đặc trưng mặt bằng trung bình của từng chuỗi quán
       if (brand === 'Highlands') {
         if (storeType === 'Trung tâm thương mại') {
           score -= 0.4;
@@ -1391,7 +1385,6 @@
         }
       }
 
-      // Quy đổi điểm sang sizeCategory và khoảng sức chứa ước lượng
       let sizeCategory = 'medium';
       let capacityEstimate = '~40-65 người (ước lượng)';
       let confidence = '70%';
@@ -2225,9 +2218,33 @@
       return { label: '🪫 Ít ổ cắm', className: 'bg-orange-50 text-orange-700 border border-orange-200' };
     }
 
+    // ==================== TÌM QUÁN GẦN TÔI + MỞ GOOGLE MAPS THEO TỪ KHÓA SEARCH ====================
+    function buildGoogleMapsSearchUrl(keyword, coords = null) {
+      const cleanQuery = String(keyword || '').trim();
+      if (!cleanQuery) return 'https://www.google.com/maps';
+      const encoded = encodeURIComponent(cleanQuery);
+      if (coords && typeof coords.lat === 'number' && typeof coords.lng === 'number') {
+        return `https://www.google.com/maps/search/${encoded}/@${coords.lat},${coords.lng},14z`;
+      }
+      return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+    }
+
     function requestUserLocation() {
+      const searchInputEl = document.getElementById('searchInput');
+      const currentKeyword = (searchInputEl ? searchInputEl.value : state.searchQuery || '').trim();
+
+      // Nếu người dùng đang gõ từ khóa trong ô tìm kiếm (ví dụ: highlands, katinat...)
+      // thì bấm nút "Gần tôi" sẽ mở Google Maps và tìm kiếm sẵn từ khóa đó ngay lập tức
+      if (currentKeyword) {
+        const mapsUrl = buildGoogleMapsSearchUrl(currentKeyword, state.userLocation);
+        window.open(mapsUrl, '_blank', 'noopener,noreferrer');
+        showToast(`Đang mở Google Maps tìm "${currentKeyword}"...`);
+      }
+
       if (!navigator.geolocation) {
-        showBanner('error', 'Thiết bị không hỗ trợ GPS', 'Bạn vẫn có thể tìm quán theo từ khóa khu vực trên thanh tìm kiếm.');
+        if (!currentKeyword) {
+          showBanner('error', 'Thiết bị không hỗ trợ GPS', 'Bạn vẫn có thể tìm quán theo từ khóa khu vực trên thanh tìm kiếm.');
+        }
         return;
       }
 
@@ -2239,24 +2256,28 @@
       navigator.geolocation.getCurrentPosition(
         (position) => {
           gpsIcon.classList.remove('animate-spin');
-          btnText.textContent = 'Gần nhất ✓';
+          btnText.textContent = 'Tìm ✓';
           state.userLocation = { lat: position.coords.latitude, lng: position.coords.longitude };
           state.sortByDistance = true;
           dismissBanner();
-          showToast('Đã sắp xếp các quán gần vị trí của bạn nhất!');
+          if (!currentKeyword) {
+            showToast('Đã sắp xếp các quán gần vị trí của bạn nhất!');
+          }
           renderStoreList();
         },
         (error) => {
           gpsIcon.classList.remove('animate-spin');
-          btnText.textContent = 'Gần tôi';
+          btnText.textContent = 'Tìm ✓';
           state.sortByDistance = false;
-          let title = 'Không thể lấy vị trí GPS';
-          let desc = 'Vui lòng nhập tên đường hoặc khu vực vào ô tìm kiếm.';
-          if (error.code === error.PERMISSION_DENIED) {
-            title = 'Bạn đã từ chối quyền truy cập Vị trí';
-            desc = 'Trên Chrome Android: Nhấn biểu tượng ổ khóa cạnh thanh địa chỉ > Quyền > Bật "Vị trí" rồi thử lại.';
+          if (!currentKeyword) {
+            let title = 'Không thể lấy vị trí GPS';
+            let desc = 'Vui lòng nhập tên đường hoặc khu vực vào ô tìm kiếm.';
+            if (error.code === error.PERMISSION_DENIED) {
+              title = 'Bạn đã từ chối quyền truy cập Vị trí';
+              desc = 'Trên Chrome Android: Nhấn biểu tượng ổ khóa cạnh thanh địa chỉ > Quyền > Bật "Vị trí" rồi thử lại.';
+            }
+            showBanner('warning', title, desc);
           }
-          showBanner('warning', title, desc);
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
       );
@@ -2314,15 +2335,22 @@
         stores = stores.filter(s => s.sizeCategory === state.sizeFilter);
       }
 
-      if (state.quietOnly) {
-        stores = stores.filter(s => s.crowdInfo.isQuietOrModerate);
-      }
-
       if (normalizedQuery) {
         stores = stores.filter(s => {
           const haystack = normalizeVietnamese(`${s.name} ${s.originalName || ''} ${s.brand} ${s.address} ${s.area} ${s.district} ${s.sizeShortLabel} ${s.capacityEstimate} ${s.socketNote}`);
           return haystack.includes(normalizedQuery);
         });
+      }
+
+      // Đếm số quán theo trạng thái (áp dụng các bộ lọc khác, trước khi lọc theo độ đông)
+      const crowdCounts = { quiet: 0, moderate: 0, busy: 0 };
+      stores.forEach(s => {
+        if (crowdCounts[s.crowdInfo.status] !== undefined) crowdCounts[s.crowdInfo.status]++;
+      });
+      renderCrowdStatusChips(crowdCounts);
+
+      if (state.crowdFilter !== 'all') {
+        stores = stores.filter(s => s.crowdInfo.status === state.crowdFilter);
       }
 
       if (state.sortByDistance && state.userLocation) {
@@ -2335,12 +2363,20 @@
           : `${stores.length} / ${totalAllCount} quán`;
 
       if (stores.length === 0) {
+        const cleanQuery = String(state.searchQuery || '').trim();
         container.innerHTML = `
           <div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2.5">
-            <p class="text-sm font-bold text-hl-brown">Không tìm thấy quán phù hợp bộ lọc</p>
-            <button onclick="resetAllFilters()" class="mt-2 bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">
-              Đặt lại bộ lọc
-            </button>
+            <p class="text-sm font-bold text-hl-brown">Không tìm thấy quán phù hợp bộ lọc trong app</p>
+            <div class="flex items-center justify-center gap-2 flex-wrap pt-1">
+              ${cleanQuery ? `
+                <a href="${buildGoogleMapsSearchUrl(cleanQuery, state.userLocation)}" target="_blank" rel="noopener noreferrer" class="bg-hl-brown text-white text-xs font-bold px-4 py-2 rounded-xl">
+                  🗺️ Tìm "${escapeHTML(cleanQuery)}" trên Google Maps
+                </a>
+              ` : ''}
+              <button onclick="resetAllFilters()" class="bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">
+                Đặt lại bộ lọc
+              </button>
+            </div>
           </div>
         `;
         return;
@@ -3057,12 +3093,56 @@
       renderStoreList();
     }
 
-    function toggleQuietOnly() {
-      state.quietOnly = !state.quietOnly;
-      const btn = document.getElementById('btnQuietOnly');
-      btn.className = `px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 ${
-        state.quietOnly ? 'bg-emerald-600 text-white' : 'bg-hl-sand text-hl-brown hover:bg-hl-brown/15'
-      }`;
+    const CROWD_STATUS_CHIPS = [
+      {
+        key: 'quiet',
+        label: 'Đang vắng',
+        dot: 'bg-emerald-500',
+        idle: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        active: 'bg-emerald-600 text-white border-emerald-700 ring-2 ring-emerald-300'
+      },
+      {
+        key: 'moderate',
+        label: 'Khách vừa',
+        dot: 'bg-amber-500',
+        idle: 'bg-amber-100 text-amber-800 border-amber-200',
+        active: 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300'
+      },
+      {
+        key: 'busy',
+        label: 'Đông khách',
+        dot: 'bg-hl-red',
+        idle: 'bg-red-100 text-hl-red border-red-200',
+        active: 'bg-hl-red text-white border-hl-redDark ring-2 ring-red-300'
+      }
+    ];
+
+    function renderCrowdStatusChips(counts) {
+      const container = document.getElementById('crowdStatusChips');
+      if (!container) return;
+      const safeCounts = counts || { quiet: 0, moderate: 0, busy: 0 };
+
+      container.innerHTML = CROWD_STATUS_CHIPS.map(ch => {
+        const isActive = state.crowdFilter === ch.key;
+        return `
+          <button
+            type="button"
+            onclick="setCrowdFilter('${ch.key}')"
+            aria-pressed="${isActive}"
+            title="${isActive ? 'Bấm lần nữa để bỏ lọc' : 'Chỉ hiện các quán ' + ch.label.toLowerCase()}"
+            class="text-[11px] font-bold px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 transition-all active:scale-95 ${isActive ? ch.active : ch.idle}"
+          >
+            <i class="w-2 h-2 rounded-full ${isActive ? 'bg-white' : ch.dot}"></i>
+            <span>${ch.label}</span>
+            <span class="min-w-[18px] text-center px-1 rounded-full text-[10px] font-extrabold ${isActive ? 'bg-white/25 text-white' : 'bg-white/80'}">${safeCounts[ch.key] || 0}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setCrowdFilter(key) {
+      // Bấm lại chip đang chọn => bỏ lọc, quay về tất cả
+      state.crowdFilter = state.crowdFilter === key ? 'all' : key;
       renderStoreList();
     }
 
@@ -3091,13 +3171,12 @@
       state.highlightedBrand = null;
       state.socketFilter = 'all';
       state.sizeFilter = 'all';
-      state.quietOnly = false;
+      state.crowdFilter = 'all';
       state.simulatedHour = null;
       clearSearch();
       renderBrandChips();
       toggleFilter('socket', 'all');
       toggleSizeFilter('all');
-      document.getElementById('btnQuietOnly').className = 'px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-sand text-hl-brown hover:bg-hl-brown/15 flex items-center gap-1';
       renderTimeSimulatorChips();
       renderStoreList();
     }
