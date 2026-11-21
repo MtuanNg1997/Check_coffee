@@ -171,7 +171,7 @@
         </div>
       </div>
 
-      <!-- Bộ lọc ổ cắm, ghim sao, quy mô, giờ -->
+      <!-- Bộ lọc ổ cắm, quy mô, giờ -->
       <div class="bg-white rounded-2xl p-3 border border-hl-brown/10 shadow-sm space-y-2.5">
         <div class="flex flex-wrap items-center gap-1.5">
           <button onclick="toggleFilter('socket', 'all')" data-socket="all" class="socket-chip px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-hl-brown text-white">Tất cả ổ cắm</button>
@@ -197,17 +197,6 @@
           </div>
           <div class="flex items-center gap-1 overflow-x-auto no-scrollbar" id="timeSimulatorChips"></div>
         </div>
-      </div>
-
-      <!-- Banner thông báo nhanh khi đang ở tab Ghim ⭐ -->
-      <div id="pinnedFilterBanner" class="hidden bg-amber-50 border border-amber-300 rounded-2xl px-3.5 py-2.5 flex items-center justify-between gap-2">
-        <div class="flex items-center gap-2 text-xs text-amber-950 font-semibold">
-          <span>⭐</span>
-          <span id="pinnedBannerText">Danh sách các quán đã ghim chuẩn bị đi</span>
-        </div>
-        <button type="button" onclick="togglePinnedOnlyFilter()" class="text-[11px] font-bold bg-white hover:bg-amber-100 text-amber-950 px-2.5 py-1 rounded-lg border border-amber-300 shrink-0">
-          Xem tất cả
-        </button>
       </div>
 
       <div id="storeListContainer" class="space-y-3 pb-4"></div>
@@ -315,7 +304,7 @@
           </button>
         </div>
         <p class="text-xs text-amber-950/85 leading-relaxed">
-          File Backup chuẩn <strong>Schema v2</strong> lưu cố định mốc UTC (<code>checkinAtMs</code>, <code>expiresAtMs</code>, <code>updatedAtMs</code>), <code>deviceId</code>, danh sách quán <code>Ghim ⭐</code> và <code>deletedIds</code> để đồng bộ nhiều máy không trùng lặp.
+          File Backup chuẩn <strong>Schema v2</strong> lưu cố định mốc UTC (<code>checkinAtMs</code>, <code>expiresAtMs</code>, <code>updatedAtMs</code>), <code>deviceId</code> và danh sách <code>deletedIds</code> để đồng bộ nhiều máy không trùng lặp, không hồi sinh mục đã xóa.
         </p>
         <div class="text-[11px] font-semibold text-hl-brown bg-white/80 px-2.5 py-1.5 rounded-lg border border-amber-200 flex items-center justify-between">
           <span>Device ID hiện tại:</span>
@@ -495,7 +484,6 @@
           </div>
           <div class="flex items-center gap-2 mt-1 flex-wrap">
             <h3 id="modalStoreName" class="text-lg font-extrabold text-hl-brown leading-snug"></h3>
-            <button type="button" id="btnPinStoreModal" class="text-[11px] font-bold bg-hl-sand hover:bg-amber-100 text-hl-brown px-2.5 py-0.5 rounded-lg border border-hl-brown/15 transition-colors">☆ Ghim</button>
             <button type="button" id="btnEditNameModal" class="text-[11px] font-bold bg-hl-sand hover:bg-hl-brown/15 text-hl-brown px-2 py-0.5 rounded-lg border border-hl-brown/15 transition-colors">✏️ Edit tên</button>
             <button type="button" id="btnDeleteStoreModal" class="text-[11px] font-bold bg-red-50 hover:bg-red-100 text-hl-red px-2 py-0.5 rounded-lg border border-red-200 transition-colors">🗑️ Xóa quán</button>
           </div>
@@ -1061,7 +1049,6 @@
       ARCHIVE_30D: 'hl_tracker_archive_30d_v1',
       DELETED_IDS: 'ct_deleted_ids_v2',
       VISIT_STATS: 'ct_visit_stats_v2',
-      ARCHIVED_PURGED_COUNTS: 'ct_archived_purged_counts_v2',
       VISIT_BADGE_MODE: 'ct_visit_badge_mode_v2',
       LAST_SEEN_MS: 'ct_last_seen_ms_v2',
       DEVICE_ID: 'ct_device_id_v2',
@@ -1070,9 +1057,9 @@
       SIZE_OVERRIDES: 'ct_store_sizes_v1',
       CUSTOM_STORES: 'hl_tracker_custom_stores_v1',
       HIDDEN_DEFAULT_STORES: 'ct_hidden_default_stores_v1',
-      PINNED_STORES: 'ct_pinned_stores_v1',
       EXIT_BACKUP_REMINDER: 'ct_exit_backup_reminder_v1',
-      LAST_BACKUP_PROMPT_MS: 'ct_last_backup_prompt_ms_v1'
+      LAST_BACKUP_PROMPT_MS: 'ct_last_backup_prompt_ms_v1',
+      PINNED_STORES: 'ct_pinned_stores_v1'
     };
 
     // ==================== 1. CHUẨN THỜI GIAN BẤT BIẾN (UTC MS) ====================
@@ -1091,7 +1078,7 @@
       socketFilter: 'all',
       sizeFilter: 'all',
       crowdFilter: 'all',
-      pinnedOnlyFilter: false,
+      pinnedStoreIds: [],
       searchQuery: '',
       simulatedHour: null,
       userLocation: null,
@@ -1100,14 +1087,12 @@
       journal: [],           // Chỉ chứa mục còn hạn (now < expiresAtMs)
       archive30d: [],        // Lưu an toàn xuống ổ ngay khi quá hạn (now >= expiresAtMs)
       deletedIds: {},        // { [id]: deletedAtMs } -> Chống hồi sinh mục đã xóa khi nạp file cũ
-      visitStats: {},        // { [storeId]: { count, lastVisitMs } } -> Tính từ bản ghi thực tế + lượt gốc đã đáo hạn
-      archivedPurgedCountByStore: {}, // { [storeId]: number } -> Số lần gốc đã đáo hạn 30 ngày & được dọn dẹp
+      visitStats: {},        // { [storeId]: { count, lastVisitMs } } -> Giữ trọn đời nếu chọn
       visitBadgeMode: 'persistent', // 'persistent' | '30days'
       clockAnomaly: null,    // 'backward' | 'forward' | null
       archiveExpanded: false,
       customStores: [],
       hiddenDefaultStoreIds: [],
-      pinnedStoreIds: [],    // Danh sách ID quán được đánh dấu Ghim ⭐ chuẩn bị đi
       socketOverrides: {},
       nameOverrides: {},
       sizeOverrides: {},
@@ -1311,33 +1296,26 @@
     }
 
     // CHỈ KHI BẤM XÓA TƯỜNG MINH DỮ LIỆU MỚI BỊ XÓA THẬT + GHI VÀO deletedIds
-    // Bảo toàn số lần gốc (archivedPurgedCountByStore) trước khi dọn ô lưu trữ quá hạn 30 ngày
     function confirmDeleteArchive30d() {
       const nowMs = Date.now();
       const deletedCount = state.archive30d.length;
       for (const item of state.archive30d) {
-        if (!item) continue;
-        if (item.storeId && !state.deletedIds[item.id]) {
-          state.archivedPurgedCountByStore[item.storeId] = (state.archivedPurgedCountByStore[item.storeId] || 0) + 1;
-        }
-        if (item.id) {
+        if (item && item.id) {
           state.deletedIds[item.id] = nowMs;
         }
       }
       state.archive30d = [];
       state.archiveExpanded = false;
 
-      safeSaveJSON(STORAGE_KEYS.ARCHIVED_PURGED_COUNTS, state.archivedPurgedCountByStore);
       safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
       safeSaveJSON(STORAGE_KEYS.DELETED_IDS, state.deletedIds);
-      rebuildVisitStatsFromEntries();
 
       closeModal('retentionPromptModal');
       updateJournalBadge();
       renderStoreList();
       renderJournalList();
       renderRetentionUI();
-      showToast(`Đã xóa thật ${deletedCount} mục đã đáo hạn (vẫn giữ số lần gốc)!`);
+      showToast(`Đã xóa thật ${deletedCount} mục đã đáo hạn!`);
     }
 
     function deleteArchive30dBox() {
@@ -1418,18 +1396,13 @@
 
     // ==================== 6. TÙY CHỌN "ĐÃ ĐI NX" (visitStats) ====================
     function rebuildVisitStatsFromEntries() {
-      const seenIds = new Set();
+      const map = Object.assign({}, state.visitStats);
+      const allEntries = [...state.journal, ...state.archive30d];
       const countByStore = {};
       const lastByStore = {};
-      const allEntries = [...(state.journal || []), ...(state.archive30d || [])];
 
       for (const e of allEntries) {
         if (!e || !e.storeId) continue;
-        if (e.id) {
-          if (seenIds.has(e.id)) continue;
-          if (state.deletedIds && state.deletedIds[e.id]) continue;
-          seenIds.add(e.id);
-        }
         countByStore[e.storeId] = (countByStore[e.storeId] || 0) + 1;
         const ts = e.checkinAtMs || 0;
         if (!lastByStore[e.storeId] || ts > lastByStore[e.storeId]) {
@@ -1437,41 +1410,25 @@
         }
       }
 
-      const allStoreIds = new Set([
-        ...Object.keys(countByStore),
-        ...Object.keys(state.archivedPurgedCountByStore || {})
-      ]);
-
-      const nextStats = {};
-      for (const storeId of allStoreIds) {
-        const liveCnt = countByStore[storeId] || 0;
-        const purgedBaseCnt = Math.max(0, Number((state.archivedPurgedCountByStore || {})[storeId]) || 0);
-        const totalCnt = liveCnt + purgedBaseCnt;
-        if (totalCnt > 0) {
-          const prevLast = (state.visitStats && state.visitStats[storeId]) ? (state.visitStats[storeId].lastVisitMs || 0) : 0;
-          nextStats[storeId] = {
-            count: totalCnt,
-            lastVisitMs: Math.max(prevLast, lastByStore[storeId] || 0)
-          };
-        }
+      for (const [storeId, cnt] of Object.entries(countByStore)) {
+        const prev = map[storeId] || { count: 0, lastVisitMs: 0 };
+        map[storeId] = {
+          count: Math.max(prev.count || 0, cnt),
+          lastVisitMs: Math.max(prev.lastVisitMs || 0, lastByStore[storeId] || 0)
+        };
       }
 
-      state.visitStats = nextStats;
+      state.visitStats = map;
       safeSaveJSON(STORAGE_KEYS.VISIT_STATS, state.visitStats);
     }
 
     function getStoreVisitCount(storeId) {
       if (state.visitBadgeMode === '30days') {
-        return (state.journal || []).filter(j => j.storeId === storeId && !(state.deletedIds && state.deletedIds[j.id])).length;
+        return state.journal.filter(j => j.storeId === storeId).length;
       }
       const stat = state.visitStats[storeId];
-      if (stat && typeof stat.count === 'number') {
-        return Math.max(0, stat.count);
-      }
-      const liveCount = [...(state.journal || []), ...(state.archive30d || [])]
-        .filter(j => j.storeId === storeId && !(state.deletedIds && state.deletedIds[j.id])).length;
-      const purgedBase = Math.max(0, Number((state.archivedPurgedCountByStore || {})[storeId]) || 0);
-      return liveCount + purgedBase;
+      const liveCount = [...state.journal, ...state.archive30d].filter(j => j.storeId === storeId).length;
+      return Math.max(stat?.count || 0, liveCount);
     }
 
     function changeVisitBadgeMode(mode) {
@@ -1481,49 +1438,6 @@
       showToast(state.visitBadgeMode === 'persistent'
         ? 'Đã chọn: Giữ số lần "Đã đi Nx" trọn đời'
         : 'Đã chọn: Reset "Đã đi Nx" sau 30 ngày');
-    }
-
-    // ==================== TÍNH NĂNG GHIM ⭐ QUÁN CHUẨN BỊ ĐI ====================
-    function isStorePinned(storeId) {
-      return Array.isArray(state.pinnedStoreIds) && state.pinnedStoreIds.includes(storeId);
-    }
-
-    function togglePinStore(event, storeId) {
-      if (event) event.stopPropagation();
-      const store = getEnrichedStores().find(s => s.id === storeId);
-      if (!store) return;
-
-      if (!Array.isArray(state.pinnedStoreIds)) state.pinnedStoreIds = [];
-      const exists = state.pinnedStoreIds.includes(storeId);
-
-      if (exists) {
-        state.pinnedStoreIds = state.pinnedStoreIds.filter(id => id !== storeId);
-        showToast(`Đã bỏ ghim "${store.name}"`);
-      } else {
-        state.pinnedStoreIds = [storeId, ...state.pinnedStoreIds.filter(id => id !== storeId)];
-        showToast(`Đã ghim ⭐ "${store.name}" vào danh sách chuẩn bị đi!`);
-      }
-
-      safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
-      renderStoreList();
-      if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) {
-        updateModalPinButton(storeId);
-      }
-    }
-
-    function togglePinnedOnlyFilter() {
-      state.pinnedOnlyFilter = !state.pinnedOnlyFilter;
-      renderStoreList();
-    }
-
-    function updateModalPinButton(storeId) {
-      const btnPin = document.getElementById('btnPinStoreModal');
-      if (!btnPin) return;
-      const pinned = isStorePinned(storeId);
-      btnPin.textContent = pinned ? '⭐ Đã ghim' : '☆ Ghim';
-      btnPin.className = pinned
-        ? 'text-[11px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 px-2.5 py-0.5 rounded-lg border border-amber-400 transition-colors'
-        : 'text-[11px] font-bold bg-hl-sand hover:bg-amber-100 text-hl-brown px-2.5 py-0.5 rounded-lg border border-hl-brown/15 transition-colors';
     }
 
     // ==================== HIỂN THỊ MỐC UTC THEO MÚI GIỜ ====================
@@ -1746,10 +1660,10 @@
       return (state.journal && state.journal.length > 0)
         || (state.archive30d && state.archive30d.length > 0)
         || (state.customStores && state.customStores.length > 0)
-        || (state.pinnedStoreIds && state.pinnedStoreIds.length > 0)
         || Object.keys(state.socketOverrides || {}).length > 0
         || Object.keys(state.nameOverrides || {}).length > 0
-        || Object.keys(state.sizeOverrides || {}).length > 0;
+        || Object.keys(state.sizeOverrides || {}).length > 0
+        || (state.pinnedStoreIds && state.pinnedStoreIds.length > 0);
     }
 
     function maybePromptExitBackup(reason = 'leave') {
@@ -1761,7 +1675,7 @@
       try { window.localStorage.setItem(STORAGE_KEYS.LAST_BACKUP_PROMPT_MS, String(nowMs)); } catch (e) {}
       const summaryEl = document.getElementById('exitBackupSummary');
       if (summaryEl) {
-        summaryEl.textContent = `Bạn đã backup chưa? Hiện có ${state.journal.length} nhật ký mới, ${state.pinnedStoreIds.length} quán đang ghim ⭐, ${state.archive30d.length} mục đã đáo hạn và ${state.customStores.length} quán tự thêm.`;
+        summaryEl.textContent = `Bạn đã backup chưa? Hiện có ${state.journal.length} nhật ký mới, ${state.archive30d.length} mục đã đáo hạn và ${state.customStores.length} quán tự thêm.`;
       }
       document.getElementById('exitBackupModal').classList.remove('hidden');
     }
@@ -1788,9 +1702,8 @@
         state.hiddenDefaultStoreIds.push(storeId);
         safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
       }
-      state.pinnedStoreIds = state.pinnedStoreIds.filter(id => id !== storeId);
-      safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       delete state.nameOverrides[storeId]; delete state.socketOverrides[storeId]; delete state.sizeOverrides[storeId];
+      state.pinnedStoreIds = state.pinnedStoreIds.filter(id => id !== storeId); safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
       safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
       safeSaveJSON(STORAGE_KEYS.SIZE_OVERRIDES, state.sizeOverrides);
@@ -1813,8 +1726,6 @@
       const defaultIdsInGroup = groupStores.filter(s => !s.isCustom && DEFAULT_STORES.some(d => d.id === s.id)).map(s => s.id);
       state.customStores = state.customStores.filter(s => !idsToRemove.has(s.id));
       safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
-      state.pinnedStoreIds = state.pinnedStoreIds.filter(id => !idsToRemove.has(id));
-      safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       if (defaultIdsInGroup.length > 0) {
         state.hiddenDefaultStoreIds = Array.from(new Set([...state.hiddenDefaultStoreIds, ...defaultIdsInGroup]));
         safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
@@ -1863,7 +1774,6 @@
         const sizeInfo = getSizeInfo(sizeCat, sizeOverride?.capacityEstimate || store.capacityEstimate);
         return {
           ...store, originalName: store.name, name: finalName, brand,
-          isPinned: isStorePinned(store.id),
           isCustom: Boolean(store.isCustom) || state.customStores.some(c => c.id === store.id),
           isNameCustomized: Boolean(customName && customName.trim() && customName.trim() !== store.name),
           isSizeCustomized: Boolean(sizeOverride), sizeCategory: sizeCat,
@@ -2004,7 +1914,6 @@
       const normalizedQuery = normalizeVietnamese(state.searchQuery);
       const allEnriched = getEnrichedStores();
       const totalAllCount = allEnriched.length;
-      const totalPinnedCount = allEnriched.filter(s => s.isPinned).length;
 
       let stores = allEnriched.map(store => ({ ...store, crowdInfo: evaluateStoreCrowd(store) }));
       if (state.selectedBrand !== 'all') stores = stores.filter(s => s.brand === state.selectedBrand);
@@ -2015,43 +1924,19 @@
         stores = stores.filter(s => normalizeVietnamese(`${s.name} ${s.originalName || ''} ${s.brand} ${s.address} ${s.area} ${s.district}`).includes(normalizedQuery));
       }
 
-      const crowdCounts = { quiet: 0, moderate: 0, busy: 0 };
-      stores.forEach(s => { if (crowdCounts[s.crowdInfo.status] !== undefined) crowdCounts[s.crowdInfo.status]++; });
-      renderCrowdStatusChips(crowdCounts, totalPinnedCount);
+      const crowdCounts = { quiet: 0, moderate: 0, busy: 0, pinned: 0 };
+      stores.forEach(s => { if (crowdCounts[s.crowdInfo.status] !== undefined) crowdCounts[s.crowdInfo.status]++; if (isPinned(s.id)) crowdCounts.pinned++; });
+      renderCrowdStatusChips(crowdCounts);
 
-      if (state.pinnedOnlyFilter) stores = stores.filter(s => s.isPinned);
-      if (state.crowdFilter !== 'all') stores = stores.filter(s => s.crowdInfo.status === state.crowdFilter);
+      if (state.crowdFilter === 'pinned') stores = stores.filter(s => isPinned(s.id));
+      else if (state.crowdFilter !== 'all') stores = stores.filter(s => s.crowdInfo.status === state.crowdFilter);
+      stores.sort((a, b) => (isPinned(b.id) ? 1 : 0) - (isPinned(a.id) ? 1 : 0));
+      if (state.sortByDistance && state.userLocation) stores.sort((a, b) => ((isPinned(b.id) ? 1 : 0) - (isPinned(a.id) ? 1 : 0)) || ((a.distanceKm ?? 999) - (b.distanceKm ?? 999)));
 
-      // Sắp xếp ưu tiên quán đã Ghim ⭐ lên đầu, sau đó mới xét khoảng cách (nếu có GPS)
-      stores.sort((a, b) => {
-        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-        if (state.sortByDistance && state.userLocation) {
-          return (a.distanceKm ?? 999) - (b.distanceKm ?? 999);
-        }
-        return 0;
-      });
-
-      const bannerEl = document.getElementById('pinnedFilterBanner');
-      const bannerTextEl = document.getElementById('pinnedBannerText');
-      if (bannerEl) {
-        bannerEl.classList.toggle('hidden', !state.pinnedOnlyFilter);
-        if (state.pinnedOnlyFilter && bannerTextEl) {
-          bannerTextEl.textContent = `Đang xem tab Ghim ⭐ (${stores.length} / ${totalPinnedCount} quán chuẩn bị đi)`;
-        }
-      }
-
-      document.getElementById('resultCount').textContent = state.pinnedOnlyFilter
-        ? `Ghim ⭐: ${stores.length} quán`
-        : (stores.length === totalAllCount ? `Tổng ${totalAllCount} quán` : `${stores.length} / ${totalAllCount} quán`);
+      document.getElementById('resultCount').textContent = stores.length === totalAllCount ? `Tổng ${totalAllCount} quán` : `${stores.length} / ${totalAllCount} quán`;
 
       if (stores.length === 0) {
-        const emptyTitle = state.pinnedOnlyFilter
-          ? 'Chưa có quán nào trong danh sách Ghim ⭐'
-          : 'Không tìm thấy quán phù hợp bộ lọc';
-        const emptyDesc = state.pinnedOnlyFilter
-          ? '<p class="text-xs text-hl-brown/75">Bấm nút <strong>☆ Ghim</strong> trên thẻ quán bất kỳ để đánh dấu quán chuẩn bị đi.</p>'
-          : '';
-        container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2.5"><p class="text-sm font-bold text-hl-brown">${emptyTitle}</p>${emptyDesc}<button onclick="resetAllFilters()" class="bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">Quay lại tất cả quán</button></div>`;
+        container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2.5"><p class="text-sm font-bold text-hl-brown">${state.crowdFilter === 'pinned' ? 'Chưa có quán nào được ghim ⭐ trong bộ lọc này' : 'Không tìm thấy quán phù hợp bộ lọc'}</p><button onclick="resetAllFilters()" class="bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">Đặt lại bộ lọc</button></div>`;
         return;
       }
 
@@ -2059,17 +1944,10 @@
         const socketBadge = getSocketBadgeInfo(store.socketLevel);
         const visitCount = getStoreVisitCount(store.id);
         const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
-        const cardBorderClass = store.isPinned
-          ? 'border-2 border-amber-400 shadow-md ring-1 ring-amber-200/70'
-          : 'border border-hl-brown/10 shadow-sm';
-        const pinBtnClass = store.isPinned
-          ? 'bg-amber-400 text-amber-950 border-amber-500 shadow-xs'
-          : 'bg-hl-sand text-hl-brown border-hl-brown/15 hover:bg-amber-100';
         return `
-          <article class="bg-white rounded-2xl p-4 ${cardBorderClass} space-y-3 transition-all">
+          <article class="bg-white rounded-2xl p-4 border ${isPinned(store.id) ? 'border-yellow-400 ring-1 ring-yellow-300' : 'border-hl-brown/10'} shadow-sm space-y-3 transition-all">
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5 flex-wrap">
-                ${store.isPinned ? `<span class="text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-950 border border-amber-300">⭐ Chuẩn bị đi</span>` : ''}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-brown/10 text-hl-brown">${escapeHTML(store.brand)}</span>
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown">${escapeHTML(store.area)}</span>
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${store.sizeBadgeClass}">${store.sizeLabel}</span>
@@ -2083,10 +1961,10 @@
             </div>
 
             <div class="space-y-1">
-              <div class="flex items-start justify-between gap-2 flex-wrap">
-                <h3 onclick="openStoreDetailModal('${store.id}')" class="text-[15px] font-extrabold text-hl-brown hover:text-hl-red leading-snug cursor-pointer flex-1 min-w-[140px]">${escapeHTML(store.name)}</h3>
-                <div class="flex items-center gap-1 shrink-0 flex-wrap">
-                  <button type="button" onclick="togglePinStore(event, '${store.id}')" title="${store.isPinned ? 'Bỏ ghim quán này' : 'Ghim ⭐ chuẩn bị đi'}" class="text-[11px] font-extrabold px-2 py-1 rounded-lg border transition-colors ${pinBtnClass}">${store.isPinned ? '⭐ Ghim' : '☆ Ghim'}</button>
+              <div class="flex items-start justify-between gap-2">
+                <h3 onclick="openStoreDetailModal('${store.id}')" class="text-[15px] font-extrabold text-hl-brown hover:text-hl-red leading-snug cursor-pointer flex-1">${escapeHTML(store.name)}</h3>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button" onclick="togglePinStore(event, '${store.id}')" class="text-[11px] font-bold px-2 py-1 rounded-lg border transition-colors ${isPinned(store.id) ? 'bg-yellow-300 text-yellow-950 border-yellow-500' : 'bg-hl-sand text-hl-brown border-hl-brown/15'}">${isPinned(store.id) ? '⭐ Đã ghim' : '☆ Ghim'}</button>
                   <button type="button" onclick="openEditStoreSizeModal(event, '${store.id}')" class="text-[11px] font-bold px-2 py-1 rounded-lg bg-hl-sand text-hl-brown border border-hl-brown/15">📐 Quy mô</button>
                   <button type="button" onclick="openEditStoreNameModal(event, '${store.id}')" class="text-[11px] font-bold px-2 py-1 rounded-lg bg-hl-sand text-hl-brown border border-hl-brown/15">✏️ Edit</button>
                   <button type="button" onclick="deleteStore(event, '${store.id}')" class="text-[11px] font-bold px-2 py-1 rounded-lg bg-red-50 text-hl-red border border-red-200">🗑️</button>
@@ -2131,8 +2009,6 @@
       document.getElementById('modalStoreCapacity').textContent = store.capacityEstimate;
       document.getElementById('modalStoreSocketLevel').textContent = socketBadge.label;
       document.getElementById('modalStoreSocketNote').textContent = store.socketNote;
-      updateModalPinButton(store.id);
-      document.getElementById('btnPinStoreModal').onclick = (e) => togglePinStore(e, store.id);
       document.getElementById('btnEditNameModal').onclick = (e) => openEditStoreNameModal(e, store.id);
       document.getElementById('btnDeleteStoreModal').onclick = (e) => deleteStore(e, store.id);
       document.getElementById('btnEditSizeModal').onclick = (e) => openEditStoreSizeModal(e, store.id);
@@ -2222,6 +2098,14 @@
         note
       };
 
+      // Cập nhật bộ đếm trọn đời theo quán
+      const prevStat = state.visitStats[store.id] || { count: 0, lastVisitMs: 0 };
+      state.visitStats[store.id] = {
+        count: (prevStat.count || 0) + 1,
+        lastVisitMs: Math.max(prevStat.lastVisitMs || 0, checkinAtMs)
+      };
+      safeSaveJSON(STORAGE_KEYS.VISIT_STATS, state.visitStats);
+
       if (nowMs >= expiresAtMs) {
         state.archive30d.unshift(newEntry);
         safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
@@ -2229,9 +2113,6 @@
         state.journal.unshift(newEntry);
         safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
       }
-
-      // Tính lại bộ đếm từ bản ghi thực tế + lượt gốc đã đáo hạn
-      rebuildVisitStatsFromEntries();
 
       closeModal('checkinModal');
       updateJournalBadge();
@@ -2244,20 +2125,13 @@
     function deleteJournalEntry(entryId) {
       const nowMs = Date.now();
       state.journal = state.journal.filter(item => item.id !== entryId);
-      state.archive30d = state.archive30d.filter(item => item.id !== entryId);
       state.deletedIds[entryId] = nowMs;
-
-      // Xóa đúng 1 lượt của bản ghi bị xóa nhầm, không chạm tới lượt gốc của quán
-      rebuildVisitStatsFromEntries();
-
       safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
-      safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
       safeSaveJSON(STORAGE_KEYS.DELETED_IDS, state.deletedIds);
       updateJournalBadge();
       renderStoreList();
       renderJournalList();
-      renderRetentionUI();
-      showToast('Đã xóa lượt check-in này & cập nhật lại số lần đi!');
+      showToast('Đã xóa mục nhật ký');
     }
 
     function checkoutJournalEntry(entryId) {
@@ -2402,7 +2276,6 @@
 
     // ==================== 4. FILE BACKUP CHUẨN (SCHEMA V2) ====================
     function createBackupPayload() {
-      rebuildVisitStatsFromEntries();
       const nowMs = Date.now();
       return {
         app: 'Coffee Tracking',
@@ -2414,13 +2287,12 @@
         archive30d: state.archive30d.map(e => normalizeJournalEntry(e, nowMs)),
         deletedIds: state.deletedIds,
         visitStats: state.visitStats,
-        archivedPurgedCountByStore: state.archivedPurgedCountByStore,
         customStores: state.customStores,
         hiddenDefaultStoreIds: state.hiddenDefaultStoreIds,
-        pinnedStoreIds: state.pinnedStoreIds,
         socketOverrides: state.socketOverrides,
         nameOverrides: state.nameOverrides,
-        sizeOverrides: state.sizeOverrides
+        sizeOverrides: state.sizeOverrides,
+        pinnedStoreIds: state.pinnedStoreIds
       };
     }
 
@@ -2511,48 +2383,20 @@
           const incomingArchive = Array.isArray(parsed.archive30d) ? parsed.archive30d : [];
           const incomingDeleted = (parsed.deletedIds && typeof parsed.deletedIds === 'object') ? parsed.deletedIds : {};
           const incomingStats = (parsed.visitStats && typeof parsed.visitStats === 'object') ? parsed.visitStats : {};
-          const incomingPurgedCounts = (parsed.archivedPurgedCountByStore && typeof parsed.archivedPurgedCountByStore === 'object') ? parsed.archivedPurgedCountByStore : {};
           const incomingStores = Array.isArray(parsed.customStores) ? parsed.customStores : [];
           const incomingHidden = Array.isArray(parsed.hiddenDefaultStoreIds) ? parsed.hiddenDefaultStoreIds : [];
-          const incomingPinned = Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [];
-
-          // Hàm hỗ trợ suy ra số lần gốc đã dọn dẹp từ file backup (tương thích cả file v2 cũ lẫn mới)
-          const derivePurgedCounts = (jList, aList, delMap, stMap, explicitPurged) => {
-            const out = {};
-            const liveByStore = {};
-            const seen = new Set();
-            for (const e of [...jList, ...aList]) {
-              if (!e || !e.storeId) continue;
-              if (e.id) {
-                if (seen.has(e.id) || delMap[e.id]) continue;
-                seen.add(e.id);
-              }
-              liveByStore[e.storeId] = (liveByStore[e.storeId] || 0) + 1;
-            }
-            const storeKeys = new Set([...Object.keys(stMap), ...Object.keys(explicitPurged)]);
-            for (const sId of storeKeys) {
-              if (typeof explicitPurged[sId] === 'number') {
-                out[sId] = Math.max(0, explicitPurged[sId]);
-              } else {
-                const statCnt = Math.max(0, Number(stMap[sId]?.count) || 0);
-                out[sId] = Math.max(0, statCnt - (liveByStore[sId] || 0));
-              }
-            }
-            return out;
-          };
 
           if (mode === 'replace') {
             state.deletedIds = Object.assign({}, incomingDeleted);
             state.journal = incomingJournal.map(i => normalizeJournalEntry(i, fileExportMs)).filter(i => !state.deletedIds[i.id]);
             state.archive30d = incomingArchive.map(i => normalizeJournalEntry(i, fileExportMs)).filter(i => !state.deletedIds[i.id]);
-            state.archivedPurgedCountByStore = derivePurgedCounts(state.journal, state.archive30d, state.deletedIds, incomingStats, incomingPurgedCounts);
             state.visitStats = Object.assign({}, incomingStats);
             state.customStores = incomingStores;
             state.hiddenDefaultStoreIds = incomingHidden;
-            state.pinnedStoreIds = incomingPinned;
             state.socketOverrides = parsed.socketOverrides || {};
             state.nameOverrides = parsed.nameOverrides || {};
             state.sizeOverrides = parsed.sizeOverrides || {};
+            state.pinnedStoreIds = Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [];
           } else {
             // Gộp danh sách deletedIds
             const mergedDeleted = Object.assign({}, state.deletedIds);
@@ -2564,20 +2408,23 @@
             state.journal = mergeJournalListsImmutable(state.journal, incomingJournal, fileExportMs, mergedDeleted);
             state.archive30d = mergeJournalListsImmutable(state.archive30d, incomingArchive, fileExportMs, mergedDeleted);
 
-            // Gộp số lần gốc đã đáo hạn & dọn dẹp
-            const incomingDerivedPurged = derivePurgedCounts(incomingJournal, incomingArchive, mergedDeleted, incomingStats, incomingPurgedCounts);
-            const mergedPurged = Object.assign({}, state.archivedPurgedCountByStore);
-            for (const [sId, pCnt] of Object.entries(incomingDerivedPurged)) {
-              mergedPurged[sId] = Math.max(mergedPurged[sId] || 0, pCnt || 0);
+            // Gộp visitStats
+            const mergedStats = Object.assign({}, state.visitStats);
+            for (const [sId, st] of Object.entries(incomingStats)) {
+              const prev = mergedStats[sId] || { count: 0, lastVisitMs: 0 };
+              mergedStats[sId] = {
+                count: Math.max(prev.count || 0, st?.count || 0),
+                lastVisitMs: Math.max(prev.lastVisitMs || 0, st?.lastVisitMs || 0)
+              };
             }
-            state.archivedPurgedCountByStore = mergedPurged;
+            state.visitStats = mergedStats;
 
             state.customStores = mergeCustomStores(state.customStores, incomingStores);
             state.hiddenDefaultStoreIds = Array.from(new Set([...state.hiddenDefaultStoreIds, ...incomingHidden]));
-            state.pinnedStoreIds = Array.from(new Set([...state.pinnedStoreIds, ...incomingPinned]));
             state.socketOverrides = Object.assign({}, state.socketOverrides, parsed.socketOverrides || {});
             state.nameOverrides = Object.assign({}, state.nameOverrides, parsed.nameOverrides || {});
             state.sizeOverrides = Object.assign({}, state.sizeOverrides, parsed.sizeOverrides || {});
+            state.pinnedStoreIds = Array.from(new Set([...state.pinnedStoreIds, ...(Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [])]));
           }
 
           rebuildVisitStatsFromEntries();
@@ -2588,14 +2435,13 @@
           safeSaveJSON(STORAGE_KEYS.JOURNAL, state.journal);
           safeSaveJSON(STORAGE_KEYS.ARCHIVE_30D, state.archive30d);
           safeSaveJSON(STORAGE_KEYS.DELETED_IDS, state.deletedIds);
-          safeSaveJSON(STORAGE_KEYS.ARCHIVED_PURGED_COUNTS, state.archivedPurgedCountByStore);
           safeSaveJSON(STORAGE_KEYS.VISIT_STATS, state.visitStats);
           safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
           safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
-          safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
           safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
           safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
           safeSaveJSON(STORAGE_KEYS.SIZE_OVERRIDES, state.sizeOverrides);
+          safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
 
           updateJournalBadge();
           renderBrandChips();
@@ -2606,7 +2452,7 @@
 
           showToast(mode === 'replace'
             ? `Đã ghi đè & khôi phục (${state.journal.length} mục còn hạn)!`
-            : `Đã đồng bộ thành công (${state.journal.length} mục còn hạn, ${state.pinnedStoreIds.length} quán ghim ⭐)!`
+            : `Đã đồng bộ thành công (${state.journal.length} mục còn hạn, ${state.archive30d.length} mục lưu trữ)!`
           );
         } catch (err) {
           showBanner('error', 'File Backup không hợp lệ', 'Vui lòng chọn đúng file .json từ Coffee Tracking.');
@@ -2662,26 +2508,37 @@
       { key: 'busy', label: 'Đông khách', dot: 'bg-hl-red', idle: 'bg-red-100 text-hl-red border-red-200', active: 'bg-hl-red text-white border-hl-redDark ring-2 ring-red-300' }
     ];
 
-    function renderCrowdStatusChips(counts, pinnedCount = 0) {
+    function renderCrowdStatusChips(counts) {
       const container = document.getElementById('crowdStatusChips');
       if (!container) return;
-      const safeCounts = counts || { quiet: 0, moderate: 0, busy: 0 };
-      const crowdHtml = CROWD_STATUS_CHIPS.map(ch => {
+      const safeCounts = counts || { quiet: 0, moderate: 0, busy: 0, pinned: 0 };
+      const pinActive = state.crowdFilter === 'pinned';
+      const pinChip = `<button type="button" onclick="setCrowdFilter('pinned')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 transition-all ${pinActive ? 'bg-yellow-400 text-yellow-950 border-yellow-600 ring-2 ring-yellow-300' : 'bg-yellow-50 text-yellow-900 border-yellow-300'}"><span>Ghim ⭐</span><span class="min-w-[18px] text-center px-1 rounded-full text-[10px] font-extrabold ${pinActive ? 'bg-white/60' : 'bg-white/80'}">${safeCounts.pinned || 0}</span></button>`;
+      container.innerHTML = CROWD_STATUS_CHIPS.map(ch => {
         const isActive = state.crowdFilter === ch.key;
         return `<button type="button" onclick="setCrowdFilter('${ch.key}')" class="text-[11px] font-bold px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 transition-all ${isActive ? ch.active : ch.idle}"><i class="w-2 h-2 rounded-full ${isActive ? 'bg-white' : ch.dot}"></i><span>${ch.label}</span><span class="min-w-[18px] text-center px-1 rounded-full text-[10px] font-extrabold ${isActive ? 'bg-white/25 text-white' : 'bg-white/80'}">${safeCounts[ch.key] || 0}</span></button>`;
-      }).join('');
+      }).join('') + pinChip;
+    }
 
-      const pinActive = state.pinnedOnlyFilter;
-      const pinChipHtml = `<button type="button" onclick="togglePinnedOnlyFilter()" class="text-[11px] font-extrabold px-2.5 py-1.5 rounded-full border flex items-center gap-1.5 transition-all ${pinActive ? 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-300 shadow-xs' : 'bg-amber-50 text-amber-950 border-amber-300 hover:bg-amber-100'}"><span>Ghim ⭐</span><span class="min-w-[18px] text-center px-1 rounded-full text-[10px] font-extrabold ${pinActive ? 'bg-white/25 text-white' : 'bg-amber-200/80 text-amber-950'}">${pinnedCount}</span></button>`;
+    // ==================== GHIM ⭐ ====================
+    function isPinned(storeId) { return state.pinnedStoreIds.includes(storeId); }
 
-      container.innerHTML = crowdHtml + pinChipHtml;
+    function togglePinStore(event, storeId) {
+      if (event) event.stopPropagation();
+      const idx = state.pinnedStoreIds.indexOf(storeId);
+      if (idx === -1) state.pinnedStoreIds.push(storeId);
+      else state.pinnedStoreIds.splice(idx, 1);
+      safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
+      if (state.crowdFilter === 'pinned' && state.pinnedStoreIds.length === 0) state.crowdFilter = 'all';
+      renderStoreList();
+      showToast(idx === -1 ? '⭐ Đã ghim quán để chuẩn bị đi!' : 'Đã bỏ ghim quán');
     }
 
     function setCrowdFilter(key) { state.crowdFilter = state.crowdFilter === key ? 'all' : key; renderStoreList(); }
     function setSimulatedHour(hourVal) { state.simulatedHour = hourVal; renderTimeSimulatorChips(); renderStoreList(); }
     function handleSearchInput(val) { state.searchQuery = val; document.getElementById('btnClearSearch').classList.toggle('hidden', !val); renderStoreList(); }
     function clearSearch() { state.searchQuery = ''; document.getElementById('searchInput').value = ''; document.getElementById('btnClearSearch').classList.add('hidden'); renderStoreList(); }
-    function resetAllFilters() { state.selectedBrand = 'all'; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.pinnedOnlyFilter = false; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
+    function resetAllFilters() { state.selectedBrand = 'all'; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
     function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
     function updateJournalBadge() { const badge = document.getElementById('journalBadge'); badge.textContent = state.journal.length; badge.classList.toggle('hidden', state.journal.length === 0); }
     function escapeHTML(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -2818,17 +2675,17 @@
       const rawArchive = safeLoadJSON(STORAGE_KEYS.ARCHIVE_30D, []);
       state.deletedIds = safeLoadJSON(STORAGE_KEYS.DELETED_IDS, {});
       state.visitStats = safeLoadJSON(STORAGE_KEYS.VISIT_STATS, {});
-      state.archivedPurgedCountByStore = safeLoadJSON(STORAGE_KEYS.ARCHIVED_PURGED_COUNTS, {});
       state.visitBadgeMode = window.localStorage.getItem(STORAGE_KEYS.VISIT_BADGE_MODE) || 'persistent';
       const modeRadio = document.querySelector(`input[name="visitBadgeMode"][value="${state.visitBadgeMode}"]`);
       if (modeRadio) modeRadio.checked = true;
 
       state.customStores = Array.isArray(safeLoadJSON(STORAGE_KEYS.CUSTOM_STORES, [])) ? safeLoadJSON(STORAGE_KEYS.CUSTOM_STORES, []) : [];
       state.hiddenDefaultStoreIds = Array.isArray(safeLoadJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, [])) ? safeLoadJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, []) : [];
-      state.pinnedStoreIds = Array.isArray(safeLoadJSON(STORAGE_KEYS.PINNED_STORES, [])) ? safeLoadJSON(STORAGE_KEYS.PINNED_STORES, []) : [];
       state.socketOverrides = safeLoadJSON(STORAGE_KEYS.SOCKET_OVERRIDES, {});
       state.nameOverrides = safeLoadJSON(STORAGE_KEYS.NAME_OVERRIDES, {});
       state.sizeOverrides = safeLoadJSON(STORAGE_KEYS.SIZE_OVERRIDES, {});
+      const rawPins = safeLoadJSON(STORAGE_KEYS.PINNED_STORES, []);
+      state.pinnedStoreIds = Array.isArray(rawPins) ? rawPins.filter(x => typeof x === 'string') : [];
 
       const savedReminder = safeLoadJSON(STORAGE_KEYS.EXIT_BACKUP_REMINDER, true);
       state.exitBackupReminder = typeof savedReminder === 'boolean' ? savedReminder : true;
