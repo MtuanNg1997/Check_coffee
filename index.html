@@ -1119,6 +1119,7 @@
       socketFilter: 'all',
       sizeFilter: 'all',
       crowdFilter: 'all',
+      currentStorePage: 1,
       pinnedStoreIds: [],
       searchQuery: '',
       simulatedHour: null,
@@ -1983,6 +1984,7 @@
     }
 
     function selectBrand(brandKey) {
+      resetStorePage();
       const prevKey = state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand);
       const nextKey = brandKey === 'all' ? 'all' : getBrandCanonicalKey(brandKey);
       if (prevKey !== nextKey) state.deleteGroupDismissedForBrand = null;
@@ -2189,6 +2191,66 @@
       container.innerHTML = presets.map(p => `<button onclick="setSimulatedHour(${p.val})" class="px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-colors shrink-0 ${state.simulatedHour === p.val ? 'bg-hl-red text-white' : 'bg-hl-sand text-hl-brown hover:bg-hl-brown/15'}">${p.label}</button>`).join('');
     }
 
+    // ==================== PHÂN TRANG DANH SÁCH QUÁN (20 QUÁN/TRANG) ====================
+    const STORES_PER_PAGE = 20;
+
+    function buildStorePaginationHTML(totalItems, position) {
+      const pageCount = Math.max(1, Math.ceil(totalItems / STORES_PER_PAGE));
+      const current = Math.min(Math.max(1, state.currentStorePage || 1), pageCount);
+      const buttons = [];
+      for (let page = 1; page <= pageCount; page++) {
+        buttons.push(`<button type="button" onclick="setStorePage(${page})" aria-current="${page === current ? 'page' : 'false'}" class="min-w-8 h-8 px-2 rounded-lg text-xs font-extrabold border transition-colors ${page === current ? 'bg-hl-red text-white border-hl-red' : 'bg-white text-hl-brown border-hl-brown/15 hover:bg-hl-sand'}">${page}</button>`);
+      }
+      const jumpToLast = `<button type="button" onclick="setStorePage(${pageCount})" title="Đến trang cuối" aria-label="Đến trang cuối" class="h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown">⏭</button>`;
+      const jumpToFirst = `<button type="button" onclick="setStorePage(1)" title="Về trang đầu" aria-label="Về trang đầu" class="h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown">⏮</button>`;
+      const controls = position === 'top'
+        ? `${jumpToLast}${buttons.join('')}`
+        : `${buttons.join('')}${jumpToFirst}`;
+      const sliderId = `storePageSlider-${position}`;
+      const sliderLabelId = `storePageSliderLabel-${position}`;
+      const slider = `
+        <div class="flex items-center justify-center gap-2 w-full px-2 ${position === 'top' ? 'pt-1' : 'pt-2'}">
+          <span class="text-[10px] font-semibold text-hl-brown/65 whitespace-nowrap">Đến trang</span>
+          <input
+            id="${sliderId}"
+            type="range"
+            min="1"
+            max="${pageCount}"
+            step="1"
+            value="${current}"
+            aria-label="Kéo để chuyển đến trang bất kỳ"
+            aria-valuetext="Trang ${current} trên ${pageCount}"
+            oninput="previewStorePageSlider(this.value, '${sliderLabelId}')"
+            onchange="setStorePage(this.value)"
+            class="w-full max-w-[280px] h-2 accent-[#9b3f32] cursor-pointer"
+          />
+          <span id="${sliderLabelId}" class="text-[10px] font-extrabold text-hl-red tabular-nums whitespace-nowrap">${current}/${pageCount}</span>
+        </div>`;
+      return pageCount > 1
+        ? `<nav aria-label="Phân trang danh sách quán" class="flex flex-wrap items-center justify-center gap-1.5 ${position === 'top' ? 'w-full pt-1' : 'w-full py-3'}"><span class="text-[10px] font-semibold text-hl-brown/65 mr-1">Trang ${current}/${pageCount}</span>${controls}${slider}</nav>`
+        : '';
+    }
+
+    function previewStorePageSlider(value, labelId) {
+      const label = document.getElementById(labelId);
+      const sliderId = labelId.replace('Label-', '');
+      const slider = document.getElementById(sliderId);
+      if (label && slider) label.textContent = `${value}/${slider.max}`;
+    }
+
+    function setStorePage(page) {
+      const safePage = Math.max(1, Number(page) || 1);
+      state.currentStorePage = safePage;
+      renderStoreList();
+      const target = document.getElementById('storeListContainer');
+      if (target) {
+        const top = target.getBoundingClientRect().top + window.pageYOffset - 110;
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    }
+
+    function resetStorePage() { state.currentStorePage = 1; }
+
     function renderStoreList() {
       const container = document.getElementById('storeListContainer');
       const normalizedQuery = normalizeVietnamese(state.searchQuery);
@@ -2224,14 +2286,27 @@
       stores.sort((a, b) => (isPinned(b.id) ? 1 : 0) - (isPinned(a.id) ? 1 : 0));
       if (state.sortByDistance && state.userLocation) stores.sort((a, b) => ((isPinned(b.id) ? 1 : 0) - (isPinned(a.id) ? 1 : 0)) || ((a.distanceKm ?? 999) - (b.distanceKm ?? 999)));
 
-      document.getElementById('resultCount').textContent = stores.length === totalAllCount ? `Tổng ${totalAllCount} quán` : `${stores.length} / ${totalAllCount} quán`;
+      const filteredStoreCount = stores.length;
+      const pageCount = Math.max(1, Math.ceil(filteredStoreCount / STORES_PER_PAGE));
+      state.currentStorePage = Math.min(Math.max(1, state.currentStorePage || 1), pageCount);
+      const pageStart = (state.currentStorePage - 1) * STORES_PER_PAGE;
+      const pageStores = stores.slice(pageStart, pageStart + STORES_PER_PAGE);
+      const crowdNav = document.getElementById('crowdStatusChips');
+      if (crowdNav) {
+        const pagination = buildStorePaginationHTML(filteredStoreCount, 'top');
+        const existingNav = crowdNav.querySelector('[aria-label="Phân trang danh sách quán"]');
+        if (existingNav) existingNav.remove();
+        if (pagination) crowdNav.insertAdjacentHTML('beforeend', pagination);
+      }
+
+      document.getElementById('resultCount').textContent = filteredStoreCount === totalAllCount ? `Tổng ${totalAllCount} quán` : `${filteredStoreCount} / ${totalAllCount} quán`;
 
       if (stores.length === 0) {
         container.innerHTML = `<div class="bg-white rounded-2xl p-6 text-center border border-hl-brown/10 space-y-2.5"><p class="text-sm font-bold text-hl-brown">${state.crowdFilter === 'pinned' ? 'Chưa có quán nào được ghim ⭐ trong bộ lọc này' : 'Không tìm thấy quán phù hợp bộ lọc'}</p><button onclick="resetAllFilters()" class="bg-hl-red text-white text-xs font-bold px-4 py-2 rounded-xl">Đặt lại bộ lọc</button></div>`;
         return;
       }
 
-      container.innerHTML = stores.map(store => {
+      container.innerHTML = pageStores.map(store => {
         const socketBadge = getSocketBadgeInfo(store.socketLevel);
         const visitCount = getStoreVisitCount(store.id);
         const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
@@ -2280,7 +2355,7 @@
             </div>
           </article>
         `;
-      }).join('');
+      }).join('') + buildStorePaginationHTML(filteredStoreCount, 'bottom');
     }
 
     function openStoreDetailModal(storeId) {
@@ -2780,6 +2855,7 @@
     }
 
     function toggleFilter(type, value) {
+      resetStorePage();
       if (type === 'socket') {
         state.socketFilter = value;
         document.querySelectorAll('.socket-chip').forEach(btn => {
@@ -2791,6 +2867,7 @@
     }
 
     function toggleSizeFilter(sizeVal) {
+      resetStorePage();
       state.sizeFilter = sizeVal;
       document.querySelectorAll('.size-chip').forEach(btn => {
         const isMatch = btn.getAttribute('data-size') === sizeVal;
@@ -2830,6 +2907,7 @@
 
     function togglePinStore(event, storeId) {
       if (event) event.stopPropagation();
+      resetStorePage();
       const idx = state.pinnedStoreIds.indexOf(storeId);
       if (idx === -1) state.pinnedStoreIds.push(storeId);
       else state.pinnedStoreIds.splice(idx, 1);
@@ -2840,11 +2918,11 @@
       showToast(idx === -1 ? '⭐ Đã ghim quán để chuẩn bị đi!' : 'Đã bỏ ghim quán');
     }
 
-    function setCrowdFilter(key) { state.crowdFilter = state.crowdFilter === key ? 'all' : key; renderStoreList(); }
-    function setSimulatedHour(hourVal) { state.simulatedHour = hourVal; renderTimeSimulatorChips(); renderStoreList(); }
-    function handleSearchInput(val) { state.searchQuery = val; document.getElementById('btnClearSearch').classList.toggle('hidden', !val); renderStoreList(); }
-    function clearSearch() { state.searchQuery = ''; document.getElementById('searchInput').value = ''; document.getElementById('btnClearSearch').classList.add('hidden'); renderStoreList(); }
-    function resetAllFilters() { state.selectedBrand = 'all'; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
+    function setCrowdFilter(key) { resetStorePage(); state.crowdFilter = state.crowdFilter === key ? 'all' : key; renderStoreList(); }
+    function setSimulatedHour(hourVal) { resetStorePage(); state.simulatedHour = hourVal; renderTimeSimulatorChips(); renderStoreList(); }
+    function handleSearchInput(val) { resetStorePage(); state.searchQuery = val; document.getElementById('btnClearSearch').classList.toggle('hidden', !val); renderStoreList(); }
+    function clearSearch() { resetStorePage(); state.searchQuery = ''; document.getElementById('searchInput').value = ''; document.getElementById('btnClearSearch').classList.add('hidden'); renderStoreList(); }
+    function resetAllFilters() { resetStorePage(); state.selectedBrand = 'all'; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
     function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
     function updateJournalBadge() { const badge = document.getElementById('journalBadge'); badge.textContent = state.journal.length; badge.classList.toggle('hidden', state.journal.length === 0); }
     function escapeHTML(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
