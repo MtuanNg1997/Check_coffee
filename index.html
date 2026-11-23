@@ -1528,19 +1528,59 @@
       return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
     }
 
+    // Chuẩn hóa key thương hiệu để gom chung nhóm bất kể viết HOA/thường/dấu cách (ví dụ: NOVA COFFEE, Nova coffee, Nova Coffee -> chung 1 nhóm; HIGHLANDS, HighLands, high lands -> Highlands)
+    function getBrandCanonicalKey(brandLabel) {
+      const norm = normalizeVietnamese(brandLabel)
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!norm) return 'khac';
+      const compact = norm.replace(/\s+/g, '');
+      if (compact.includes('highland') || compact.includes('hightland')) return 'highlands';
+      if (compact.includes('katinat')) return 'katinat';
+      if (compact.includes('thecoffeehouse') || compact.includes('thecoffehouse')) return 'thecoffeehouse';
+      if (compact.includes('trungnguyen')) return 'trungnguyen';
+      if (compact.includes('phuclong')) return 'phuclong';
+      if (compact.includes('starbuck')) return 'starbucks';
+      if (compact.includes('cheesecoffee')) return 'cheesecoffee';
+      if (compact.includes('congcafe') || compact.includes('congcaphe')) return 'congcaphe';
+      return compact;
+    }
+
+    // Format hiển thị chuẩn Title Case cho tên nhóm thương hiệu (không để dính toàn chữ HOA như NOVA COFFEE)
+    function formatBrandDisplayTitle(rawStr) {
+      const tokens = String(rawStr || '')
+        .replace(/[^0-9A-Za-zÀ-ỹ\s-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(' ')
+        .filter(Boolean);
+      if (!tokens.length) return 'Khác';
+      return tokens.map(tok => titleCaseWord(tok)).join(' ');
+    }
+
     function classifyCoffeeBrand(name) {
       const raw = String(name || '').trim();
       if (!raw) return 'Khác';
       const norm = normalizeVietnamese(raw).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
       const compact = norm.replace(/\s+/g, '');
+
+      // Nhận diện thương hiệu phổ biến không phân biệt HOA/thường hay khoảng trắng thừa (HIGHLANDS, HighLands, high lands -> Highlands)
       if (norm.includes('highlands') || norm.includes('hight lands') || norm.includes('hightlands') || norm.includes('high land') || compact.includes('highlands') || compact.includes('hightlands') || compact.includes('highland')) return 'Highlands';
       if (norm.includes('katinat') || compact.includes('katinat')) return 'Katinat';
       if (norm.includes('the coffee house') || norm.includes('the coffe house') || compact.includes('thecoffeehouse') || compact.includes('thecoffehouse')) return 'The Coffee House';
+      if (norm.includes('trung nguyen') || compact.includes('trungnguyen')) return 'Trung Nguyên';
+      if (norm.includes('phuc long') || compact.includes('phuclong')) return 'Phúc Long';
+      if (norm.includes('starbucks') || compact.includes('starbucks')) return 'Starbucks';
+      if (norm.includes('cheese coffee') || compact.includes('cheesecoffee')) return 'Cheese Coffee';
+      if (norm.includes('cong ca phe') || norm.includes('cong cafe') || compact.includes('congcaphe') || compact.includes('congcafe')) return 'Cộng Cà Phê';
+
       const cleanTokens = raw.replace(/[^0-9A-Za-zÀ-ỹ\s-]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
       if (cleanTokens.length === 0) return 'Khác';
       const firstTwoNorm = normalizeVietnamese(`${cleanTokens[0]} ${cleanTokens[1] || ''}`).trim();
       const takeCount = (firstTwoNorm === 'the coffee' || firstTwoNorm === 'the coffe') && cleanTokens.length >= 3 ? 3 : Math.min(2, cleanTokens.length);
-      return cleanTokens.slice(0, takeCount).map(tok => (/^[A-Z0-9]{2,}$/.test(tok) ? tok : titleCaseWord(tok))).join(' ') || 'Khác';
+      // Luôn chuẩn hóa Title Case (ví dụ: "NOVA COFFEE", "Nova coffee", "Nova Coffee" -> đều thành "Nova Coffee")
+      return cleanTokens.slice(0, takeCount).map(tok => titleCaseWord(tok)).join(' ') || 'Khác';
     }
 
     function inferSmartSizeAndCapacity({ name = '', address = '', area = '', district = '', storeType = '', socketNote = '', rawSmartText = '' }) {
@@ -1763,7 +1803,8 @@
     function openEditBrandGroupModal() {
       const targetBrand = state.selectedBrand;
       if (!targetBrand || targetBrand === 'all') return;
-      const groupStores = getEnrichedStores().filter(s => s.brand === targetBrand);
+      const targetKey = getBrandCanonicalKey(targetBrand);
+      const groupStores = getEnrichedStores().filter(s => s.brandKey === targetKey);
       if (!groupStores.length) return;
       document.getElementById('editBrandGroupOldName').value = targetBrand;
       document.getElementById('editBrandGroupNewInput').value = targetBrand;
@@ -1779,14 +1820,16 @@
     function saveBrandGroupRename(event) {
       event.preventDefault();
       const oldBrand = document.getElementById('editBrandGroupOldName').value;
-      const newBrand = document.getElementById('editBrandGroupNewInput').value.trim();
+      const rawNewBrand = document.getElementById('editBrandGroupNewInput').value.trim();
+      const newBrand = formatBrandDisplayTitle(rawNewBrand);
       if (!oldBrand || !newBrand) return;
       if (oldBrand === newBrand) {
         closeModal('editBrandGroupModal');
         return;
       }
 
-      const groupStores = getEnrichedStores().filter(s => s.brand === oldBrand);
+      const oldKey = getBrandCanonicalKey(oldBrand);
+      const groupStores = getEnrichedStores().filter(s => s.brandKey === oldKey);
       if (!groupStores.length) {
         closeModal('editBrandGroupModal');
         return;
@@ -1831,7 +1874,8 @@
     function deleteSelectedBrandGroup() {
       const targetBrand = state.selectedBrand;
       if (!targetBrand || targetBrand === 'all') return;
-      const groupStores = getEnrichedStores().filter(s => s.brand === targetBrand);
+      const targetKey = getBrandCanonicalKey(targetBrand);
+      const groupStores = getEnrichedStores().filter(s => s.brandKey === targetKey);
       if (!groupStores.length || !window.confirm(`Xóa toàn bộ nhóm "${targetBrand}" (${groupStores.length} quán)?`)) return;
       const idsToRemove = new Set(groupStores.map(s => s.id));
       const defaultIdsInGroup = groupStores.filter(s => !s.isCustom && DEFAULT_STORES.some(d => d.id === s.id)).map(s => s.id);
@@ -1874,18 +1918,26 @@
     }
 
     function getEnrichedStores() {
-      return getAllBaseStores().map(store => {
+      const canonicalDisplayMap = new Map();
+      const rawEnriched = getAllBaseStores().map(store => {
         const socketOverride = state.socketOverrides[store.id];
         const customName = state.nameOverrides[store.id];
         const sizeOverride = state.sizeOverrides[store.id];
         const finalName = (typeof customName === 'string' && customName.trim()) ? customName.trim() : store.name;
         const customBrand = state.brandOverrides[store.id];
-        const brand = (typeof customBrand === 'string' && customBrand.trim()) ? customBrand.trim() : classifyCoffeeBrand(finalName);
+        const hasCustomBrand = typeof customBrand === 'string' && customBrand.trim().length > 0;
+        const rawBrand = hasCustomBrand ? customBrand.trim() : classifyCoffeeBrand(finalName);
+        const brandKey = getBrandCanonicalKey(rawBrand);
+
+        if (!canonicalDisplayMap.has(brandKey) || hasCustomBrand) {
+          canonicalDisplayMap.set(brandKey, hasCustomBrand ? rawBrand : formatBrandDisplayTitle(rawBrand));
+        }
+
         const distance = state.userLocation ? calculateDistanceKm(state.userLocation.lat, state.userLocation.lng, store.lat, store.lng) : null;
         const sizeCat = sizeOverride?.sizeCategory || store.sizeCategory || inferSizeFromStoreType(store.storeType);
         const sizeInfo = getSizeInfo(sizeCat, sizeOverride?.capacityEstimate || store.capacityEstimate);
         return {
-          ...store, originalName: store.name, name: finalName, brand,
+          ...store, originalName: store.name, name: finalName, brandKey, rawBrand,
           isCustom: Boolean(store.isCustom) || state.customStores.some(c => c.id === store.id),
           isNameCustomized: Boolean(customName && customName.trim() && customName.trim() !== store.name),
           isSizeCustomized: Boolean(sizeOverride), sizeCategory: sizeCat,
@@ -1896,6 +1948,11 @@
           isSocketCustomized: Boolean(socketOverride), distanceKm: distance
         };
       });
+
+      return rawEnriched.map(item => ({
+        ...item,
+        brand: canonicalDisplayMap.get(item.brandKey) || item.rawBrand
+      }));
     }
 
     function renderBrandChips() {
@@ -1905,24 +1962,30 @@
       if (!container) return;
       const allStores = getEnrichedStores();
       const dynamicBrands = Array.from(new Set(allStores.map(s => s.brand).filter(Boolean)));
-      if (state.selectedBrand !== 'all' && !dynamicBrands.includes(state.selectedBrand)) {
+      const selectedKey = state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand);
+      const matchedBrand = selectedKey === 'all' ? 'all' : dynamicBrands.find(b => getBrandCanonicalKey(b) === selectedKey);
+      if (state.selectedBrand !== 'all' && !matchedBrand) {
         state.selectedBrand = 'all'; state.deleteGroupDismissedForBrand = null;
+      } else if (matchedBrand && matchedBrand !== state.selectedBrand) {
+        state.selectedBrand = matchedBrand;
       }
       if (deleteGroupWidget && btnDeleteGroup) {
         const showDel = state.selectedBrand && state.selectedBrand !== 'all' && state.deleteGroupDismissedForBrand !== state.selectedBrand;
         deleteGroupWidget.classList.toggle('hidden', !showDel);
-        if (showDel) btnDeleteGroup.textContent = `🗑️ Xóa nhóm ${state.selectedBrand} (${allStores.filter(s => s.brand === state.selectedBrand).length})`;
+        if (showDel) btnDeleteGroup.textContent = `🗑️ Xóa nhóm ${state.selectedBrand} (${allStores.filter(s => s.brandKey === selectedKey).length})`;
       }
-      const chips = [{ key: 'all', label: `Tất cả (${allStores.length})` }, ...dynamicBrands.map(b => ({ key: b, label: `${b} (${allStores.filter(s => s.brand === b).length})` }))];
+      const chips = [{ key: 'all', label: `Tất cả (${allStores.length})` }, ...dynamicBrands.map(b => ({ key: b, label: `${b} (${allStores.filter(s => s.brandKey === getBrandCanonicalKey(b)).length})` }))];
       container.innerHTML = chips.map(ch => {
-        const active = state.selectedBrand === ch.key;
+        const active = ch.key === 'all' ? state.selectedBrand === 'all' : getBrandCanonicalKey(state.selectedBrand) === getBrandCanonicalKey(ch.key);
         const encodedKey = encodeURIComponent(ch.key);
         return `<button type="button" data-brand-key="${escapeHTML(ch.key)}" onclick="selectBrand(decodeURIComponent('${encodedKey}'))" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 select-none ${active ? 'bg-hl-brown text-white shadow-sm' : 'bg-hl-cream text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'}">${escapeHTML(ch.label)}</button>`;
       }).join('');
     }
 
     function selectBrand(brandKey) {
-      if (state.selectedBrand !== brandKey) state.deleteGroupDismissedForBrand = null;
+      const prevKey = state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand);
+      const nextKey = brandKey === 'all' ? 'all' : getBrandCanonicalKey(brandKey);
+      if (prevKey !== nextKey) state.deleteGroupDismissedForBrand = null;
       state.selectedBrand = brandKey;
       renderBrandChips(); scrollBrandChipIntoView(brandKey); renderStoreList();
     }
@@ -1934,17 +1997,26 @@
         .trim();
     }
 
-    function stripBrandPrefixForMatch(normStr) {
-      return normStr
-        .replace(/^(highlands coffee|highlands|hightlands|the coffee house|katinat coffee|katinat|phuc long|starbucks|trung nguyen legend|trung nguyen|passio|cheese coffee|cong ca phe|koi the|gong cha|coffee|quan ca phe|ca phe|cafe)\b\s*/g, '')
+    function stripBrandPrefixForMatch(normStr, brandLabel = '') {
+      let stripped = normStr
+        .replace(/^(highlands coffee|highlands|hightlands|the coffee house|the coffe house|katinat coffee|katinat|phuc long coffee|phuc long|starbucks coffee|starbucks|trung nguyen legend|trung nguyen|passio coffee|passio|cheese coffee|cong ca phe|cong cafe|koi the|gong cha)\b\s*/g, '')
         .trim();
+      if (brandLabel) {
+        const normBrand = normalizeStoreComparisonText(brandLabel);
+        if (normBrand && stripped.startsWith(normBrand)) {
+          stripped = stripped.slice(normBrand.length).trim();
+        }
+      }
+      stripped = stripped.replace(/^(coffee|quan ca phe|ca phe|cafe)\b\s*/g, '').trim();
+      return stripped;
     }
 
     function findDuplicateStoreByName(inputName, excludeStoreId = null) {
       const normInput = normalizeStoreComparisonText(inputName);
       if (!normInput || normInput.length < 2) return null;
-      const inputBranch = stripBrandPrefixForMatch(normInput);
       const inputBrand = classifyCoffeeBrand(inputName);
+      const inputBrandKey = getBrandCanonicalKey(inputBrand);
+      const inputBranch = stripBrandPrefixForMatch(normInput, inputBrand);
 
       const allStores = getEnrichedStores();
       for (const s of allStores) {
@@ -1957,14 +2029,20 @@
           return { store: s, reason: 'trùng tên hoàn toàn' };
         }
 
-        // 2. Một tên chứa trọn vẹn tên kia (ví dụ: "Tân Phú" nằm trong "Highlands Coffee - Aeon Mall Tân Phú" hoặc ngược lại)
+        const existingBranch = stripBrandPrefixForMatch(normExisting, s.brand);
+        const sameBrand = (inputBrandKey === s.brandKey);
+
+        // 2. Chỉ báo trùng cụm tên khi KHÔNG phải trường hợp 1 bên chỉ có tên thương hiệu chung chung (ví dụ "NOVA COFFEE")
+        // còn bên kia có thêm tên chi nhánh/đường cụ thể (ví dụ "Nova Coffee Lê Đình Thụ")
         if (normInput.length >= 4 && (normExisting.includes(normInput) || normInput.includes(normExisting))) {
-          return { store: s, reason: 'trùng cụm tên / từ khóa chung' };
+          const oneIsBrandOnly = sameBrand && (!inputBranch || !existingBranch);
+          if (!oneIsBrandOnly) {
+            return { store: s, reason: 'trùng cụm tên / từ khóa chung' };
+          }
         }
 
-        // 3. Cùng thương hiệu và phần tên nhánh/khu vực trùng hoặc chứa nhau (ví dụ: "Highlands Tân Phú" vs "Highlands Coffee - Aeon Mall Tân Phú")
-        const existingBranch = stripBrandPrefixForMatch(normExisting);
-        if (inputBrand === s.brand && inputBranch.length >= 3 && existingBranch.length >= 3) {
+        // 3. Cùng thương hiệu và cả 2 đều có phần tên nhánh/đường cụ thể trùng hoặc chứa nhau
+        if (sameBrand && inputBranch.length >= 3 && existingBranch.length >= 3) {
           if (existingBranch.includes(inputBranch) || inputBranch.includes(existingBranch)) {
             return { store: s, reason: 'trùng nhánh / khu vực cùng thương hiệu' };
           }
@@ -2118,12 +2196,23 @@
       const totalAllCount = allEnriched.length;
 
       let stores = allEnriched.map(store => ({ ...store, crowdInfo: evaluateStoreCrowd(store) }));
-      if (state.selectedBrand !== 'all') stores = stores.filter(s => s.brand === state.selectedBrand);
+      if (state.selectedBrand !== 'all') {
+        const selectedKey = getBrandCanonicalKey(state.selectedBrand);
+        stores = stores.filter(s => s.brandKey === selectedKey);
+      }
       if (state.socketFilter === 'high') stores = stores.filter(s => s.socketLevel === 'high');
       else if (state.socketFilter === 'medium') stores = stores.filter(s => s.socketLevel === 'high' || s.socketLevel === 'medium');
       if (state.sizeFilter !== 'all') stores = stores.filter(s => s.sizeCategory === state.sizeFilter);
       if (normalizedQuery) {
-        stores = stores.filter(s => normalizeVietnamese(`${s.name} ${s.originalName || ''} ${s.brand} ${s.address} ${s.area} ${s.district}`).includes(normalizedQuery));
+        const compactQuery = normalizedQuery.replace(/[^a-z0-9]/g, '');
+        const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+        stores = stores.filter(s => {
+          const hayNorm = normalizeVietnamese(`${s.name} ${s.originalName || ''} ${s.brand} ${s.address} ${s.area} ${s.district}`);
+          if (hayNorm.includes(normalizedQuery)) return true;
+          const hayCompact = hayNorm.replace(/[^a-z0-9]/g, '');
+          if (compactQuery.length >= 2 && hayCompact.includes(compactQuery)) return true;
+          return queryTokens.length > 1 && queryTokens.every(tok => hayNorm.includes(tok));
+        });
       }
 
       const crowdCounts = { quiet: 0, moderate: 0, busy: 0, pinned: 0 };
@@ -2847,7 +2936,7 @@
       const profile = generateEstimatedCrowdProfile(storeType);
       state.customStores.unshift({
         id: 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-        name, brand: classifyCoffeeBrand(name),
+        name, brand: formatBrandDisplayTitle(classifyCoffeeBrand(name)),
         area: document.getElementById('newStoreArea').value.trim() || 'Khu vực khác',
         district: document.getElementById('newStoreDistrict').value.trim() || 'Bình Tân',
         address,
