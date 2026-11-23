@@ -140,6 +140,15 @@
             <div id="deleteBrandGroupWidget" class="hidden inline-flex items-center rounded-lg border border-red-200 bg-red-50 overflow-hidden">
               <button
                 type="button"
+                id="btnEditSelectedBrandGroup"
+                onclick="openEditBrandGroupModal()"
+                title="Đổi tên nhóm thương hiệu"
+                class="hover:bg-amber-100 bg-amber-50 text-hl-brown text-[11px] font-bold px-2.5 py-1 border-r border-red-200 active:scale-95 transition-all"
+              >
+                ✏️ Sửa tên
+              </button>
+              <button
+                type="button"
                 id="btnDeleteSelectedBrandGroup"
                 onclick="deleteSelectedBrandGroup()"
                 class="hover:bg-red-100 text-hl-red text-[11px] font-bold px-2.5 py-1 active:scale-95 transition-all"
@@ -150,8 +159,8 @@
                 type="button"
                 id="btnDismissDeleteBrandGroup"
                 onclick="dismissDeleteBrandGroupMode()"
-                title="Tắt chế độ xóa nhóm"
-                aria-label="Tắt chế độ xóa nhóm"
+                title="Tắt chế độ xóa/sửa nhóm"
+                aria-label="Tắt chế độ xóa/sửa nhóm"
                 class="hover:bg-red-200/80 text-hl-red text-[11px] font-extrabold px-1.5 py-1 border-l border-red-200 transition-colors"
               >
                 [x]
@@ -581,6 +590,34 @@
         <div class="flex items-center gap-2.5 pt-1">
           <button type="button" id="btnResetStoreName" onclick="resetStoreNameOverride()" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-3.5 rounded-2xl border border-hl-brown/15 transition-colors">Khôi phục tên gốc</button>
           <button type="submit" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">Lưu tên quán</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 1B-2: ĐỔI TÊN NHÓM THƯƠNG HIỆU COFFEE -->
+  <div id="editBrandGroupModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Đổi tên nhóm thương hiệu</h3>
+          <p id="editBrandGroupSubtitle" class="text-xs text-hl-brown/70 mt-0.5">Cập nhật tên nhóm cho toàn bộ quán thuộc nhóm này</p>
+        </div>
+        <button onclick="closeModal('editBrandGroupModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">✕</button>
+      </div>
+      <form onsubmit="saveBrandGroupRename(event)" class="space-y-3.5">
+        <input type="hidden" id="editBrandGroupOldName">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Tên nhóm Coffee mới</label>
+          <input type="text" id="editBrandGroupNewInput" required placeholder="Nhập tên nhóm mới (ví dụ: Coffee Trung Nguyên)..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+        <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10 space-y-1">
+          <p class="text-[11px] font-bold text-hl-brown/60 uppercase">Danh sách quán sẽ cập nhật</p>
+          <p id="editBrandGroupAffectedList" class="text-xs text-hl-brown/85 leading-relaxed"></p>
+        </div>
+        <div class="flex items-center gap-2.5 pt-1">
+          <button type="button" onclick="closeModal('editBrandGroupModal')" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-4 rounded-2xl border border-hl-brown/15 transition-colors">Hủy</button>
+          <button type="submit" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">Lưu tên nhóm</button>
         </div>
       </form>
     </div>
@@ -1057,6 +1094,7 @@
       DEVICE_ID: 'ct_device_id_v2',
       SOCKET_OVERRIDES: 'hl_tracker_sockets_v1',
       NAME_OVERRIDES: 'hl_tracker_store_names_v1',
+      BRAND_OVERRIDES: 'ct_store_brands_v1',
       SIZE_OVERRIDES: 'ct_store_sizes_v1',
       CUSTOM_STORES: 'hl_tracker_custom_stores_v1',
       HIDDEN_DEFAULT_STORES: 'ct_hidden_default_stores_v1',
@@ -1098,6 +1136,7 @@
       hiddenDefaultStoreIds: [],
       socketOverrides: {},
       nameOverrides: {},
+      brandOverrides: {},
       sizeOverrides: {},
       exitBackupReminder: true,
       activeModalStoreId: null,
@@ -1705,9 +1744,10 @@
         state.hiddenDefaultStoreIds.push(storeId);
         safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
       }
-      delete state.nameOverrides[storeId]; delete state.socketOverrides[storeId]; delete state.sizeOverrides[storeId];
+      delete state.nameOverrides[storeId]; delete state.brandOverrides[storeId]; delete state.socketOverrides[storeId]; delete state.sizeOverrides[storeId];
       state.pinnedStoreIds = state.pinnedStoreIds.filter(id => id !== storeId); safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+      safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
       safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
       safeSaveJSON(STORAGE_KEYS.SIZE_OVERRIDES, state.sizeOverrides);
       if (state.activeModalStoreId === storeId) closeModal('detailModal');
@@ -1718,6 +1758,74 @@
     function dismissDeleteBrandGroupMode() {
       if (state.selectedBrand && state.selectedBrand !== 'all') state.deleteGroupDismissedForBrand = state.selectedBrand;
       renderBrandChips();
+    }
+
+    function openEditBrandGroupModal() {
+      const targetBrand = state.selectedBrand;
+      if (!targetBrand || targetBrand === 'all') return;
+      const groupStores = getEnrichedStores().filter(s => s.brand === targetBrand);
+      if (!groupStores.length) return;
+      document.getElementById('editBrandGroupOldName').value = targetBrand;
+      document.getElementById('editBrandGroupNewInput').value = targetBrand;
+      document.getElementById('editBrandGroupSubtitle').textContent = `Đang sửa tên nhóm "${targetBrand}" (${groupStores.length} quán)`;
+      document.getElementById('editBrandGroupAffectedList').textContent = groupStores.map(s => s.name).join(' • ');
+      document.getElementById('editBrandGroupModal').classList.remove('hidden');
+      setTimeout(() => {
+        const inp = document.getElementById('editBrandGroupNewInput');
+        if (inp) { inp.focus(); inp.select(); }
+      }, 60);
+    }
+
+    function saveBrandGroupRename(event) {
+      event.preventDefault();
+      const oldBrand = document.getElementById('editBrandGroupOldName').value;
+      const newBrand = document.getElementById('editBrandGroupNewInput').value.trim();
+      if (!oldBrand || !newBrand) return;
+      if (oldBrand === newBrand) {
+        closeModal('editBrandGroupModal');
+        return;
+      }
+
+      const groupStores = getEnrichedStores().filter(s => s.brand === oldBrand);
+      if (!groupStores.length) {
+        closeModal('editBrandGroupModal');
+        return;
+      }
+
+      const escapedOld = oldBrand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const prefixRegex = new RegExp('^' + escapedOld + '(?=\\s|$|[-–:])', 'i');
+
+      groupStores.forEach(store => {
+        // Cập nhật tên nhóm thương hiệu của quán
+        state.brandOverrides[store.id] = newBrand;
+
+        // Nếu tên quán bắt đầu bằng tên nhóm cũ thì cập nhật luôn phần đầu tên quán cho đồng bộ
+        if (prefixRegex.test(store.name)) {
+          const updatedStoreName = store.name.replace(prefixRegex, newBrand);
+          const baseStore = getAllBaseStores().find(b => b.id === store.id);
+          if (baseStore && updatedStoreName === baseStore.name) {
+            delete state.nameOverrides[store.id];
+          } else {
+            state.nameOverrides[store.id] = updatedStoreName;
+          }
+        }
+      });
+
+      safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
+      safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+
+      state.selectedBrand = newBrand;
+      state.deleteGroupDismissedForBrand = null;
+
+      closeModal('editBrandGroupModal');
+      renderBrandChips();
+      scrollBrandChipIntoView(newBrand);
+      renderStoreList();
+      populateStoreSelect();
+      if (state.activeModalStoreId && !document.getElementById('detailModal').classList.contains('hidden')) {
+        openStoreDetailModal(state.activeModalStoreId);
+      }
+      showToast(`Đã đổi tên nhóm "${oldBrand}" → "${newBrand}"!`);
     }
 
     function deleteSelectedBrandGroup() {
@@ -1771,7 +1879,8 @@
         const customName = state.nameOverrides[store.id];
         const sizeOverride = state.sizeOverrides[store.id];
         const finalName = (typeof customName === 'string' && customName.trim()) ? customName.trim() : store.name;
-        const brand = classifyCoffeeBrand(finalName);
+        const customBrand = state.brandOverrides[store.id];
+        const brand = (typeof customBrand === 'string' && customBrand.trim()) ? customBrand.trim() : classifyCoffeeBrand(finalName);
         const distance = state.userLocation ? calculateDistanceKm(state.userLocation.lat, state.userLocation.lng, store.lat, store.lng) : null;
         const sizeCat = sizeOverride?.sizeCategory || store.sizeCategory || inferSizeFromStoreType(store.storeType);
         const sizeInfo = getSizeInfo(sizeCat, sizeOverride?.capacityEstimate || store.capacityEstimate);
@@ -1921,7 +2030,9 @@
       const baseStore = getAllBaseStores().find(s => s.id === storeId);
       if (baseStore && newName === baseStore.name) delete state.nameOverrides[storeId];
       else state.nameOverrides[storeId] = newName;
+      delete state.brandOverrides[storeId];
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+      safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
       closeModal('editStoreNameModal'); renderBrandChips(); renderStoreList(); populateStoreSelect();
       if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) openStoreDetailModal(storeId);
       showToast('Đã đổi tên quán!');
@@ -1931,7 +2042,9 @@
       const storeId = document.getElementById('editStoreNameId').value;
       if (!storeId) return;
       delete state.nameOverrides[storeId];
+      delete state.brandOverrides[storeId];
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+      safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
       closeModal('editStoreNameModal'); renderBrandChips(); renderStoreList(); populateStoreSelect();
       showToast('Đã khôi phục tên gốc!');
     }
@@ -2382,6 +2495,7 @@
         hiddenDefaultStoreIds: state.hiddenDefaultStoreIds,
         socketOverrides: state.socketOverrides,
         nameOverrides: state.nameOverrides,
+        brandOverrides: state.brandOverrides,
         sizeOverrides: state.sizeOverrides,
         pinnedStoreIds: state.pinnedStoreIds
       };
@@ -2486,6 +2600,7 @@
             state.hiddenDefaultStoreIds = incomingHidden;
             state.socketOverrides = parsed.socketOverrides || {};
             state.nameOverrides = parsed.nameOverrides || {};
+            state.brandOverrides = parsed.brandOverrides || {};
             state.sizeOverrides = parsed.sizeOverrides || {};
             state.pinnedStoreIds = Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [];
           } else {
@@ -2514,6 +2629,7 @@
             state.hiddenDefaultStoreIds = Array.from(new Set([...state.hiddenDefaultStoreIds, ...incomingHidden]));
             state.socketOverrides = Object.assign({}, state.socketOverrides, parsed.socketOverrides || {});
             state.nameOverrides = Object.assign({}, state.nameOverrides, parsed.nameOverrides || {});
+            state.brandOverrides = Object.assign({}, state.brandOverrides, parsed.brandOverrides || {});
             state.sizeOverrides = Object.assign({}, state.sizeOverrides, parsed.sizeOverrides || {});
             state.pinnedStoreIds = Array.from(new Set([...state.pinnedStoreIds, ...(Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [])]));
           }
@@ -2531,6 +2647,7 @@
           safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
           safeSaveJSON(STORAGE_KEYS.SOCKET_OVERRIDES, state.socketOverrides);
           safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
+          safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
           safeSaveJSON(STORAGE_KEYS.SIZE_OVERRIDES, state.sizeOverrides);
           safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
 
@@ -2791,6 +2908,7 @@
       state.hiddenDefaultStoreIds = Array.isArray(safeLoadJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, [])) ? safeLoadJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, []) : [];
       state.socketOverrides = safeLoadJSON(STORAGE_KEYS.SOCKET_OVERRIDES, {});
       state.nameOverrides = safeLoadJSON(STORAGE_KEYS.NAME_OVERRIDES, {});
+      state.brandOverrides = safeLoadJSON(STORAGE_KEYS.BRAND_OVERRIDES, {});
       state.sizeOverrides = safeLoadJSON(STORAGE_KEYS.SIZE_OVERRIDES, {});
       const rawPins = safeLoadJSON(STORAGE_KEYS.PINNED_STORES, []);
       state.pinnedStoreIds = Array.isArray(rawPins) ? rawPins.filter(x => typeof x === 'string') : [];
