@@ -484,6 +484,7 @@
           </div>
           <div class="flex items-center gap-2 mt-1 flex-wrap">
             <h3 id="modalStoreName" class="text-lg font-extrabold text-hl-brown leading-snug"></h3>
+            <button type="button" id="btnPinStoreModal" class="text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors bg-hl-sand text-hl-brown border-hl-brown/15">☆ Ghim</button>
             <button type="button" id="btnEditNameModal" class="text-[11px] font-bold bg-hl-sand hover:bg-hl-brown/15 text-hl-brown px-2 py-0.5 rounded-lg border border-hl-brown/15 transition-colors">✏️ Edit tên</button>
             <button type="button" id="btnDeleteStoreModal" class="text-[11px] font-bold bg-red-50 hover:bg-red-100 text-hl-red px-2 py-0.5 rounded-lg border border-red-200 transition-colors">🗑️ Xóa quán</button>
           </div>
@@ -570,7 +571,8 @@
         <input type="hidden" id="editStoreNameId">
         <div>
           <label class="block text-xs font-bold text-hl-brown mb-1">Tên quán mới</label>
-          <input type="text" id="editStoreNameInput" required placeholder="Nhập tên quán muốn đổi..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          <input type="text" id="editStoreNameInput" required placeholder="Nhập tên quán muốn đổi..." oninput="checkEditStoreDuplicateLive()" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+          <div id="editStoreDuplicateAlert" class="hidden mt-1.5 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-hl-red font-semibold"></div>
         </div>
         <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10">
           <p class="text-[11px] font-bold text-hl-brown/60 uppercase">Địa chỉ (giữ nguyên)</p>
@@ -701,7 +703,8 @@
             <label class="text-xs font-bold text-hl-brown">Tên quán *</label>
             <span id="newStoreBrandPreview" class="text-[11px] font-bold px-2 py-0.5 rounded bg-hl-sand text-hl-brown">Ô thương hiệu: —</span>
           </div>
-          <input type="text" id="newStoreName" required placeholder="Ví dụ: The Coffee House 123 Nguyễn Trãi..." oninput="updateNewStoreBrandPreview(); runSmartSizeInference()" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-sm font-medium text-hl-brown">
+          <input type="text" id="newStoreName" required placeholder="Ví dụ: The Coffee House 123 Nguyễn Trãi..." oninput="updateNewStoreBrandPreview(); runSmartSizeInference(); checkAddStoreDuplicateLive()" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2 text-sm font-medium text-hl-brown">
+          <div id="newStoreDuplicateAlert" class="hidden mt-1.5 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-hl-red font-semibold"></div>
         </div>
 
         <div class="grid grid-cols-2 gap-2.5">
@@ -1815,6 +1818,83 @@
       renderBrandChips(); scrollBrandChipIntoView(brandKey); renderStoreList();
     }
 
+    function normalizeStoreComparisonText(str) {
+      return normalizeVietnamese(str)
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function stripBrandPrefixForMatch(normStr) {
+      return normStr
+        .replace(/^(highlands coffee|highlands|hightlands|the coffee house|katinat coffee|katinat|phuc long|starbucks|trung nguyen legend|trung nguyen|passio|cheese coffee|cong ca phe|koi the|gong cha|coffee|quan ca phe|ca phe|cafe)\b\s*/g, '')
+        .trim();
+    }
+
+    function findDuplicateStoreByName(inputName, excludeStoreId = null) {
+      const normInput = normalizeStoreComparisonText(inputName);
+      if (!normInput || normInput.length < 2) return null;
+      const inputBranch = stripBrandPrefixForMatch(normInput);
+      const inputBrand = classifyCoffeeBrand(inputName);
+
+      const allStores = getEnrichedStores();
+      for (const s of allStores) {
+        if (excludeStoreId && s.id === excludeStoreId) continue;
+        const normExisting = normalizeStoreComparisonText(s.name);
+        if (!normExisting) continue;
+
+        // 1. Trùng hoàn toàn (bất kể hoa thường, dấu, ký tự gạch ngang)
+        if (normInput === normExisting) {
+          return { store: s, reason: 'trùng tên hoàn toàn' };
+        }
+
+        // 2. Một tên chứa trọn vẹn tên kia (ví dụ: "Tân Phú" nằm trong "Highlands Coffee - Aeon Mall Tân Phú" hoặc ngược lại)
+        if (normInput.length >= 4 && (normExisting.includes(normInput) || normInput.includes(normExisting))) {
+          return { store: s, reason: 'trùng cụm tên / từ khóa chung' };
+        }
+
+        // 3. Cùng thương hiệu và phần tên nhánh/khu vực trùng hoặc chứa nhau (ví dụ: "Highlands Tân Phú" vs "Highlands Coffee - Aeon Mall Tân Phú")
+        const existingBranch = stripBrandPrefixForMatch(normExisting);
+        if (inputBrand === s.brand && inputBranch.length >= 3 && existingBranch.length >= 3) {
+          if (existingBranch.includes(inputBranch) || inputBranch.includes(existingBranch)) {
+            return { store: s, reason: 'trùng nhánh / khu vực cùng thương hiệu' };
+          }
+        }
+      }
+      return null;
+    }
+
+    function checkAddStoreDuplicateLive() {
+      const nameVal = document.getElementById('newStoreName')?.value || '';
+      const alertBox = document.getElementById('newStoreDuplicateAlert');
+      if (!alertBox) return null;
+      const dup = findDuplicateStoreByName(nameVal, null);
+      if (dup) {
+        alertBox.textContent = `⚠️ Đã có coffee tên này rồi: "${dup.store.name}" (${dup.store.area}).`;
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+        alertBox.textContent = '';
+      }
+      return dup;
+    }
+
+    function checkEditStoreDuplicateLive() {
+      const storeId = document.getElementById('editStoreNameId')?.value || null;
+      const nameVal = document.getElementById('editStoreNameInput')?.value || '';
+      const alertBox = document.getElementById('editStoreDuplicateAlert');
+      if (!alertBox) return null;
+      const dup = findDuplicateStoreByName(nameVal, storeId);
+      if (dup) {
+        alertBox.textContent = `⚠️ Đã có coffee tên này rồi: "${dup.store.name}" (${dup.store.area}).`;
+        alertBox.classList.remove('hidden');
+      } else {
+        alertBox.classList.add('hidden');
+        alertBox.textContent = '';
+      }
+      return dup;
+    }
+
     function openEditStoreNameModal(event, storeId) {
       if (event) event.stopPropagation();
       const store = getEnrichedStores().find(s => s.id === storeId);
@@ -1822,6 +1902,8 @@
       document.getElementById('editStoreNameId').value = store.id;
       document.getElementById('editStoreNameInput').value = store.name;
       document.getElementById('editStoreFixedAddress').textContent = store.address;
+      const alertBox = document.getElementById('editStoreDuplicateAlert');
+      if (alertBox) { alertBox.classList.add('hidden'); alertBox.textContent = ''; }
       document.getElementById('editStoreNameModal').classList.remove('hidden');
     }
 
@@ -1830,11 +1912,18 @@
       const storeId = document.getElementById('editStoreNameId').value;
       const newName = document.getElementById('editStoreNameInput').value.trim();
       if (!storeId || !newName) return;
+      const dup = findDuplicateStoreByName(newName, storeId);
+      if (dup) {
+        checkEditStoreDuplicateLive();
+        showToast(`⚠️ Đã có coffee tên này rồi: "${dup.store.name}"!`);
+        return;
+      }
       const baseStore = getAllBaseStores().find(s => s.id === storeId);
       if (baseStore && newName === baseStore.name) delete state.nameOverrides[storeId];
       else state.nameOverrides[storeId] = newName;
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
       closeModal('editStoreNameModal'); renderBrandChips(); renderStoreList(); populateStoreSelect();
+      if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) openStoreDetailModal(storeId);
       showToast('Đã đổi tên quán!');
     }
 
@@ -2009,6 +2098,8 @@
       document.getElementById('modalStoreCapacity').textContent = store.capacityEstimate;
       document.getElementById('modalStoreSocketLevel').textContent = socketBadge.label;
       document.getElementById('modalStoreSocketNote').textContent = store.socketNote;
+      updateModalPinButton(store.id);
+      document.getElementById('btnPinStoreModal').onclick = (e) => togglePinStore(e, store.id);
       document.getElementById('btnEditNameModal').onclick = (e) => openEditStoreNameModal(e, store.id);
       document.getElementById('btnDeleteStoreModal').onclick = (e) => deleteStore(e, store.id);
       document.getElementById('btnEditSizeModal').onclick = (e) => openEditStoreSizeModal(e, store.id);
@@ -2523,6 +2614,14 @@
     // ==================== GHIM ⭐ ====================
     function isPinned(storeId) { return state.pinnedStoreIds.includes(storeId); }
 
+    function updateModalPinButton(storeId) {
+      const btnPin = document.getElementById('btnPinStoreModal');
+      if (!btnPin) return;
+      const pinned = isPinned(storeId);
+      btnPin.textContent = pinned ? '⭐ Đã ghim' : '☆ Ghim';
+      btnPin.className = `text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors ${pinned ? 'bg-yellow-300 text-yellow-950 border-yellow-500' : 'bg-hl-sand text-hl-brown border-hl-brown/15 hover:bg-hl-brown/15'}`;
+    }
+
     function togglePinStore(event, storeId) {
       if (event) event.stopPropagation();
       const idx = state.pinnedStoreIds.indexOf(storeId);
@@ -2530,6 +2629,7 @@
       else state.pinnedStoreIds.splice(idx, 1);
       safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       if (state.crowdFilter === 'pinned' && state.pinnedStoreIds.length === 0) state.crowdFilter = 'all';
+      if (state.activeModalStoreId === storeId) updateModalPinButton(storeId);
       renderStoreList();
       showToast(idx === -1 ? '⭐ Đã ghim quán để chuẩn bị đi!' : 'Đã bỏ ghim quán');
     }
@@ -2592,6 +2692,8 @@
       state.manualSizeOverrideInAddModal = false;
       document.getElementById('newStoreName').value = '';
       document.getElementById('newStoreAddress').value = '';
+      const alertBox = document.getElementById('newStoreDuplicateAlert');
+      if (alertBox) { alertBox.classList.add('hidden'); alertBox.textContent = ''; }
       updateNewStoreBrandPreview(); runSmartSizeInference(true);
       document.getElementById('addStoreModal').classList.remove('hidden');
     }
@@ -2616,6 +2718,12 @@
       const name = document.getElementById('newStoreName').value.trim();
       const address = document.getElementById('newStoreAddress').value.trim();
       if (!name || !address) return;
+      const dup = findDuplicateStoreByName(name, null);
+      if (dup) {
+        checkAddStoreDuplicateLive();
+        showToast(`⚠️ Đã có coffee tên này rồi: "${dup.store.name}"!`);
+        return;
+      }
       const storeType = document.getElementById('newStoreType').value;
       const sizeCategory = document.getElementById('newStoreSizeCategory').value || 'medium';
       const hoursParts = document.getElementById('newStoreHoursPreset').value.split('|');
