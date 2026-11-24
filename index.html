@@ -48,6 +48,8 @@
     .brand-hscroll::-webkit-scrollbar-track { background: rgba(241, 232, 223, 0.7); border-radius: 9999px; }
     .brand-hscroll::-webkit-scrollbar-thumb { background: rgba(83, 56, 44, 0.38); border-radius: 9999px; }
     .brand-hscroll::-webkit-scrollbar-thumb:hover { background: rgba(178, 40, 48, 0.65); }
+    /* Dải nút phân trang: giống dải Thương hiệu, luôn hiện thanh cuộn ngang */
+    .page-hscroll { overflow-x: scroll; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
@@ -2197,38 +2199,49 @@
     function buildStorePaginationHTML(totalItems, position) {
       const pageCount = Math.max(1, Math.ceil(totalItems / STORES_PER_PAGE));
       const current = Math.min(Math.max(1, state.currentStorePage || 1), pageCount);
+      if (pageCount <= 1) return '';
       const buttons = [];
       for (let page = 1; page <= pageCount; page++) {
-        buttons.push(`<button type="button" onclick="setStorePage(${page})" aria-current="${page === current ? 'page' : 'false'}" class="min-w-8 h-8 px-2 rounded-lg text-xs font-extrabold border transition-colors ${page === current ? 'bg-hl-red text-white border-hl-red' : 'bg-white text-hl-brown border-hl-brown/15 hover:bg-hl-sand'}">${page}</button>`);
+        buttons.push(`<button type="button" onclick="setStorePage(${page})" aria-current="${page === current ? 'page' : 'false'}" class="shrink-0 min-w-8 h-8 px-2 rounded-lg text-xs font-extrabold border transition-colors ${page === current ? 'bg-hl-red text-white border-hl-red' : 'bg-white text-hl-brown border-hl-brown/15 hover:bg-hl-sand'}">${page}</button>`);
       }
-      const jumpToLast = `<button type="button" onclick="setStorePage(${pageCount})" title="Đến trang cuối" aria-label="Đến trang cuối" class="h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown">⏭</button>`;
-      const jumpToFirst = `<button type="button" onclick="setStorePage(1)" title="Về trang đầu" aria-label="Về trang đầu" class="h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown">⏮</button>`;
-      const controls = position === 'top'
-        ? `${jumpToLast}${buttons.join('')}`
-        : `${buttons.join('')}${jumpToFirst}`;
-      const sliderId = `storePageSlider-${position}`;
-      const sliderLabelId = `storePageSliderLabel-${position}`;
-      const slider = `
-        <div class="flex items-center justify-center gap-2 w-full px-2 ${position === 'top' ? 'pt-1' : 'pt-2'}">
-          <span class="text-[10px] font-semibold text-hl-brown/65 whitespace-nowrap">Đến trang</span>
-          <input
-            id="${sliderId}"
-            type="range"
-            min="1"
-            max="${pageCount}"
-            step="1"
-            value="${current}"
-            aria-label="Kéo để chuyển đến trang bất kỳ"
-            aria-valuetext="Trang ${current} trên ${pageCount}"
-            oninput="previewStorePageSlider(this.value, '${sliderLabelId}')"
-            onchange="setStorePage(this.value)"
-            class="w-full max-w-[280px] h-2 accent-[#9b3f32] cursor-pointer"
-          />
-          <span id="${sliderLabelId}" class="text-[10px] font-extrabold text-hl-red tabular-nums whitespace-nowrap">${current}/${pageCount}</span>
-        </div>`;
-      return pageCount > 1
-        ? `<nav aria-label="Phân trang danh sách quán" class="flex flex-wrap items-center justify-center gap-1.5 ${position === 'top' ? 'w-full pt-1' : 'w-full py-3'}"><span class="text-[10px] font-semibold text-hl-brown/65 mr-1">Trang ${current}/${pageCount}</span>${controls}${slider}</nav>`
-        : '';
+      // Hai nút nhảy đầu/cuối đặt chung một dải, giống nhau ở cả thanh trên (trên quán #1) và thanh dưới (dưới quán #20)
+      const jumpToLast = `<button type="button" onclick="setStorePage(${pageCount})" title="Đến trang cuối" aria-label="Đến trang cuối" class="shrink-0 h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown hover:bg-hl-brown/15 transition-colors">⏭</button>`;
+      const jumpToFirst = `<button type="button" onclick="setStorePage(1)" title="Về trang đầu" aria-label="Về trang đầu" class="shrink-0 h-8 px-2 rounded-lg text-xs font-extrabold border border-hl-brown/15 bg-hl-sand text-hl-brown hover:bg-hl-brown/15 transition-colors">⏮</button>`;
+      const arrowClass = 'w-7 h-8 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors';
+      const stripId = `storePageStrip-${position}`;
+      // Dải trượt ngang giống khu "Thương hiệu": nút ‹ › hai bên + thanh cuộn ngang bên dưới
+      return `<nav aria-label="Phân trang danh sách quán" data-page-nav="${position}" class="w-full ${position === 'top' ? 'pt-1' : 'py-3'}">
+        <div class="flex items-center gap-1.5">
+          <button type="button" onclick="scrollStorePageStrip('${position}', -200)" class="${arrowClass}" title="Trượt sang trái" aria-label="Trượt sang trái">‹</button>
+          <div id="${stripId}" class="brand-hscroll page-hscroll flex-1 min-w-0 pb-1.5">
+            <div class="flex items-center gap-1.5 w-max mx-auto">
+              <span class="shrink-0 text-[10px] font-semibold text-hl-brown/65 whitespace-nowrap mr-1">Trang ${current}/${pageCount}</span>${jumpToLast}${buttons.join('')}${jumpToFirst}
+            </div>
+          </div>
+          <button type="button" onclick="scrollStorePageStrip('${position}', 200)" class="${arrowClass}" title="Trượt sang phải" aria-label="Trượt sang phải">›</button>
+        </div>
+      </nav>`;
+    }
+
+    function scrollStorePageStrip(position, deltaX) {
+      const strip = document.getElementById(`storePageStrip-${position}`);
+      if (strip) strip.scrollBy({ left: deltaX, behavior: 'smooth' });
+    }
+
+    // Nếu nút trang đang chọn bị che khỏi dải trượt thì đưa nó vào giữa (không cuộn trang dọc)
+    function centerStorePageStrips() {
+      document.querySelectorAll('[id^="storePageStrip-"]').forEach(strip => {
+        const active = strip.querySelector('[aria-current="page"]');
+        if (!active) return;
+        const stripRect = strip.getBoundingClientRect();
+        const activeRect = active.getBoundingClientRect();
+        if (!stripRect.width) return;
+        if (activeRect.left >= stripRect.left && activeRect.right <= stripRect.right) return;
+        const delta = (activeRect.left + activeRect.width / 2) - (stripRect.left + stripRect.width / 2);
+        strip.style.scrollBehavior = 'auto';
+        strip.scrollLeft += delta;
+        strip.style.scrollBehavior = '';
+      });
     }
 
     function previewStorePageSlider(value, labelId) {
@@ -2356,6 +2369,7 @@
           </article>
         `;
       }).join('') + buildStorePaginationHTML(filteredStoreCount, 'bottom');
+      centerStorePageStrips();
     }
 
     function openStoreDetailModal(storeId) {
@@ -2851,6 +2865,7 @@
       });
       if (tabName === 'journal') { renderJournalList(); renderRetentionUI(); }
       else if (tabName === 'settings') renderHiddenStoresCard();
+      else if (tabName === 'explore') centerStorePageStrips();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
