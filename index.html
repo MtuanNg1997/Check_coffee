@@ -139,36 +139,10 @@
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <span class="text-[11px] font-bold uppercase tracking-wider text-hl-brown/75">Thương hiệu (tự tách 2–3 từ đầu)</span>
           <div class="flex items-center gap-1.5 flex-wrap">
-            <div id="deleteBrandGroupWidget" class="hidden inline-flex items-center rounded-lg border border-red-200 bg-red-50 overflow-hidden">
-              <button
-                type="button"
-                id="btnEditSelectedBrandGroup"
-                onclick="openEditBrandGroupModal()"
-                title="Đổi tên nhóm thương hiệu"
-                class="hover:bg-amber-100 bg-amber-50 text-hl-brown text-[11px] font-bold px-2.5 py-1 border-r border-red-200 active:scale-95 transition-all"
-              >
-                ✏️ Sửa tên
-              </button>
-              <button
-                type="button"
-                id="btnDeleteSelectedBrandGroup"
-                onclick="deleteSelectedBrandGroup()"
-                class="hover:bg-red-100 text-hl-red text-[11px] font-bold px-2.5 py-1 active:scale-95 transition-all"
-              >
-                🗑️ Xóa nhóm
-              </button>
-              <button
-                type="button"
-                id="btnDismissDeleteBrandGroup"
-                onclick="dismissDeleteBrandGroupMode()"
-                title="Tắt chế độ xóa/sửa nhóm"
-                aria-label="Tắt chế độ xóa/sửa nhóm"
-                class="hover:bg-red-200/80 text-hl-red text-[11px] font-extrabold px-1.5 py-1 border-l border-red-200 transition-colors"
-              >
-                [x]
-              </button>
-            </div>
             <span id="resultCount" class="text-xs font-semibold text-hl-red">Tổng 11 quán</span>
+            <button onclick="openGroupNameModal('create')" class="bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs active:scale-95 transition-all flex items-center gap-1" title="Tạo nhóm tự đặt tên">
+              <span>+ Nhóm</span>
+            </button>
             <button onclick="openAddStoreModal()" class="bg-hl-red hover:bg-hl-redDark text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-xs active:scale-95 transition-all flex items-center gap-1">
               <span>+ Thêm quán</span>
             </button>
@@ -179,6 +153,29 @@
           <button type="button" onclick="scrollBrandChips(-200)" class="w-7 h-8 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors" title="Trượt sang trái">‹</button>
           <div id="brandFilterChips" class="brand-hscroll flex-1 flex items-center gap-2 pb-1.5"></div>
           <button type="button" onclick="scrollBrandChips(200)" class="w-7 h-8 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors" title="Trượt sang phải">›</button>
+        </div>
+        <div id="deleteBrandGroupWidget" class="hidden flex flex-wrap items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 p-1.5">
+          <span id="groupWidgetLabel" class="text-[11px] font-extrabold text-hl-brown px-1.5"></span>
+          <button type="button" id="btnCopyGroup" onclick="copyGroupToClipboard('copy')" title="Copy cả nhóm vào clipboard" class="bg-white hover:bg-hl-sand text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-hl-brown/15 active:scale-95 transition-all">📋 Copy</button>
+          <button type="button" id="btnCutGroup" onclick="copyGroupToClipboard('move')" title="Cắt cả nhóm để dán/di chuyển" class="bg-white hover:bg-hl-sand text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-hl-brown/15 active:scale-95 transition-all">✂️ Cắt</button>
+          <button type="button" id="btnTransferGroup" onclick="openTransferForSelection()" title="Chép hoặc di chuyển cả nhóm sang nhóm tự đặt tên" class="bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-300 active:scale-95 transition-all">📤 Chép/Chuyển sang nhóm…</button>
+          <button type="button" id="btnRemoveSubGroup" onclick="removeSelectedSubGroup()" title="Gỡ nhóm con đang chọn khỏi nhóm này (quán không bị xóa)" class="hidden bg-white hover:bg-amber-100 text-amber-950 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-300 active:scale-95 transition-all">➖ Gỡ nhóm con</button>
+          <button type="button" id="btnEditSelectedBrandGroup" onclick="openEditSelectedGroup()" title="Đổi tên nhóm" class="bg-amber-50 hover:bg-amber-100 text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-200 active:scale-95 transition-all">✏️ Sửa tên</button>
+          <button type="button" id="btnDeleteSelectedBrandGroup" onclick="deleteSelectedGroupAny()" class="hover:bg-red-100 bg-white text-hl-red text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-200 active:scale-95 transition-all">🗑️ Xóa nhóm</button>
+          <button type="button" id="btnDismissDeleteBrandGroup" onclick="dismissDeleteBrandGroupMode()" title="Tắt thanh thao tác nhóm" aria-label="Tắt thanh thao tác nhóm" class="hover:bg-red-200/80 text-hl-red text-[11px] font-extrabold px-2 py-1 rounded-lg transition-colors">[x]</button>
+        </div>
+        <div id="groupSubChipsRow" class="hidden space-y-1">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-hl-brown/60 px-0.5">Nhóm bên trong</p>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="scrollSubChips(-200)" class="w-7 h-8 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors" title="Trượt sang trái">‹</button>
+            <div id="groupSubChips" class="brand-hscroll flex-1 flex items-center gap-2 pb-1.5"></div>
+            <button type="button" onclick="scrollSubChips(200)" class="w-7 h-8 rounded-lg bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-extrabold text-xs flex items-center justify-center shrink-0 transition-colors" title="Trượt sang phải">›</button>
+          </div>
+        </div>
+        <div id="groupClipboardBar" class="hidden flex flex-wrap items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 p-1.5">
+          <span id="groupClipboardText" class="text-[11px] font-bold text-amber-950 px-1.5"></span>
+          <button type="button" onclick="pasteClipboard()" class="bg-hl-red hover:bg-hl-redDark text-white text-[11px] font-bold px-2.5 py-1 rounded-lg active:scale-95 transition-all">📥 Dán</button>
+          <button type="button" onclick="clearGroupClipboard()" title="Xóa clipboard" class="text-amber-900 hover:bg-amber-200 text-[11px] font-extrabold px-2 py-1 rounded-lg transition-colors">✕</button>
         </div>
       </div>
 
@@ -497,6 +494,7 @@
             <h3 id="modalStoreName" class="text-lg font-extrabold text-hl-brown leading-snug"></h3>
             <button type="button" id="btnPinStoreModal" class="text-[11px] font-bold px-2 py-0.5 rounded-lg border transition-colors bg-hl-sand text-hl-brown border-hl-brown/15">☆ Ghim</button>
             <button type="button" id="btnEditNameModal" class="text-[11px] font-bold bg-hl-sand hover:bg-hl-brown/15 text-hl-brown px-2 py-0.5 rounded-lg border border-hl-brown/15 transition-colors">✏️ Edit tên</button>
+            <button type="button" id="btnAddToGroupModal" class="text-[11px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 px-2 py-0.5 rounded-lg border border-amber-300 transition-colors">📁 Nhóm</button>
             <button type="button" id="btnDeleteStoreModal" class="text-[11px] font-bold bg-red-50 hover:bg-red-100 text-hl-red px-2 py-0.5 rounded-lg border border-red-200 transition-colors">🗑️ Xóa quán</button>
           </div>
           <p id="modalStoreAddress" class="text-xs text-hl-brown/75 mt-0.5"></p>
@@ -868,6 +866,100 @@
     </div>
   </div>
 
+  
+  <!-- MODAL: SỬA KHU VỰC HIỂN THỊ -->
+  <div id="editStoreAreaModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Sửa khu vực hiển thị</h3>
+          <p id="editAreaModalStoreName" class="text-xs text-hl-red font-semibold mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('editStoreAreaModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">✕</button>
+      </div>
+      <form onsubmit="saveStoreAreaOverride(event)" class="space-y-3.5">
+        <input type="hidden" id="editStoreAreaId">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Khu vực hiển thị mới</label>
+          <input type="text" id="editStoreAreaInput" required maxlength="60" placeholder="Ví dụ: Tây Thạnh, Khu Tên Lửa..." class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+        <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10">
+          <p class="text-[11px] font-bold text-hl-brown/60 uppercase">Khu vực gốc</p>
+          <p id="editStoreAreaOriginal" class="text-xs text-hl-brown/85 mt-1 leading-relaxed"></p>
+        </div>
+        <div class="flex items-center gap-2.5 pt-1">
+          <button type="button" onclick="resetStoreAreaOverride()" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-3.5 rounded-2xl border border-hl-brown/15 transition-colors">Khôi phục gốc</button>
+          <button type="submit" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">Lưu khu vực</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TẠO / ĐỔI TÊN NHÓM TỰ ĐẶT TÊN -->
+  <div id="groupNameModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 id="groupNameModalTitle" class="text-base font-extrabold text-hl-brown">Tạo nhóm mới</h3>
+          <p id="groupNameModalSubtitle" class="text-xs text-hl-brown/70 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('groupNameModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">✕</button>
+      </div>
+      <form onsubmit="submitGroupName(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Tên nhóm</label>
+          <input type="text" id="groupNameInput" required maxlength="40" placeholder="Ví dụ: Coffee sáng" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+        <div class="flex items-center gap-2.5 pt-1">
+          <button type="button" onclick="closeModal('groupNameModal')" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-4 rounded-2xl border border-hl-brown/15 transition-colors">Hủy</button>
+          <button type="submit" id="groupNameSubmitBtn" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">Lưu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CHÉP / DI CHUYỂN SANG NHÓM TỰ ĐẶT TÊN -->
+  <div id="groupTransferModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl max-h-[92vh] overflow-y-auto animate-slide-up p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base font-extrabold text-hl-brown">Chép / Di chuyển sang nhóm</h3>
+          <p id="transferSummary" class="text-xs text-hl-red font-semibold mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('groupTransferModal')" class="p-2 rounded-full bg-hl-sand text-hl-brown">✕</button>
+      </div>
+      <form onsubmit="submitGroupTransfer(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-hl-brown mb-1">Nhóm đích</label>
+          <select id="transferTargetSelect" onchange="onTransferTargetChange()" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown"></select>
+        </div>
+        <div id="transferNewNameWrap" class="hidden">
+          <label class="block text-xs font-bold text-hl-brown mb-1">Tên nhóm mới</label>
+          <input type="text" id="transferNewGroupName" maxlength="40" placeholder="Ví dụ: Coffee sáng" class="w-full bg-hl-cream border border-hl-brown/20 rounded-xl px-3 py-2.5 text-sm font-semibold text-hl-brown focus:outline-none focus:ring-2 focus:ring-hl-red">
+        </div>
+        <div class="bg-hl-cream p-3 rounded-xl border border-hl-brown/10 space-y-2">
+          <p class="text-[11px] font-bold text-hl-brown uppercase tracking-wide">Cách thực hiện:</p>
+          <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
+            <input type="radio" name="transferMode" value="copy" checked class="mt-0.5 accent-hl-red">
+            <span><strong>Copy:</strong> quán vẫn nằm ở nhóm gốc và có thêm trong nhóm đích.</span>
+          </label>
+          <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
+            <input type="radio" name="transferMode" value="move" class="mt-0.5 accent-hl-red">
+            <span><strong>Di chuyển:</strong> quán chuyển hẳn sang nhóm đích (không còn hiện ở nhóm gốc; xóa nhóm đích thì quán tự trở về nhóm gốc).</span>
+          </label>
+        </div>
+        <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10 space-y-1">
+          <p class="text-[11px] font-bold text-hl-brown/60 uppercase">Danh sách quán sẽ chuyển</p>
+          <p id="transferMembersPreview" class="text-xs text-hl-brown/85 leading-relaxed"></p>
+        </div>
+        <div class="flex items-center gap-2.5 pt-1">
+          <button type="button" onclick="closeModal('groupTransferModal')" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-3.5 px-4 rounded-2xl border border-hl-brown/15 transition-colors">Hủy</button>
+          <button type="submit" class="flex-1 bg-hl-red hover:bg-hl-redDark text-white font-bold text-sm py-3.5 rounded-2xl shadow-md">Thực hiện</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- TOAST THÔNG BÁO NHANH -->
   <div id="toastNotification" class="hidden fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-hl-brown text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 whitespace-nowrap">
     <span id="toastText">Đã lưu thành công</span>
@@ -1102,7 +1194,9 @@
       HIDDEN_DEFAULT_STORES: 'ct_hidden_default_stores_v1',
       EXIT_BACKUP_REMINDER: 'ct_exit_backup_reminder_v1',
       LAST_BACKUP_PROMPT_MS: 'ct_last_backup_prompt_ms_v1',
-      PINNED_STORES: 'ct_pinned_stores_v1'
+      PINNED_STORES: 'ct_pinned_stores_v1',
+      AREA_OVERRIDES: 'ct_store_areas_v1',
+      CUSTOM_GROUPS: 'ct_custom_groups_v1'
     };
 
     // ==================== 1. CHUẨN THỜI GIAN BẤT BIẾN (UTC MS) ====================
@@ -1123,6 +1217,13 @@
       crowdFilter: 'all',
       currentStorePage: 1,
       pinnedStoreIds: [],
+      areaOverrides: {},
+      customGroups: [],
+      selectedGroupId: null,
+      selectedSubBrandKey: null,
+      groupClipboard: null,
+      transferCtx: null,
+      groupNameCtx: null,
       searchQuery: '',
       simulatedHour: null,
       userLocation: null,
@@ -1748,6 +1849,8 @@
         || Object.keys(state.socketOverrides || {}).length > 0
         || Object.keys(state.nameOverrides || {}).length > 0
         || Object.keys(state.sizeOverrides || {}).length > 0
+        || Object.keys(state.areaOverrides || {}).length > 0
+        || (state.customGroups && state.customGroups.length > 0)
         || (state.pinnedStoreIds && state.pinnedStoreIds.length > 0);
     }
 
@@ -1788,6 +1891,7 @@
         safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
       }
       delete state.nameOverrides[storeId]; delete state.brandOverrides[storeId]; delete state.socketOverrides[storeId]; delete state.sizeOverrides[storeId];
+      delete state.areaOverrides[storeId]; safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
       state.pinnedStoreIds = state.pinnedStoreIds.filter(id => id !== storeId); safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
       safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
@@ -1799,7 +1903,8 @@
     }
 
     function dismissDeleteBrandGroupMode() {
-      if (state.selectedBrand && state.selectedBrand !== 'all') state.deleteGroupDismissedForBrand = state.selectedBrand;
+      if (state.selectedGroupId) state.deleteGroupDismissedForBrand = 'grp:' + state.selectedGroupId;
+      else if (state.selectedBrand && state.selectedBrand !== 'all') state.deleteGroupDismissedForBrand = state.selectedBrand;
       renderBrandChips();
     }
 
@@ -1807,7 +1912,7 @@
       const targetBrand = state.selectedBrand;
       if (!targetBrand || targetBrand === 'all') return;
       const targetKey = getBrandCanonicalKey(targetBrand);
-      const groupStores = getEnrichedStores().filter(s => s.brandKey === targetKey);
+      const groupStores = getBrandGroupStores(targetKey);
       if (!groupStores.length) return;
       document.getElementById('editBrandGroupOldName').value = targetBrand;
       document.getElementById('editBrandGroupNewInput').value = targetBrand;
@@ -1832,7 +1937,7 @@
       }
 
       const oldKey = getBrandCanonicalKey(oldBrand);
-      const groupStores = getEnrichedStores().filter(s => s.brandKey === oldKey);
+      const groupStores = getBrandGroupStores(oldKey);
       if (!groupStores.length) {
         closeModal('editBrandGroupModal');
         return;
@@ -1878,7 +1983,7 @@
       const targetBrand = state.selectedBrand;
       if (!targetBrand || targetBrand === 'all') return;
       const targetKey = getBrandCanonicalKey(targetBrand);
-      const groupStores = getEnrichedStores().filter(s => s.brandKey === targetKey);
+      const groupStores = getBrandGroupStores(targetKey);
       if (!groupStores.length || !window.confirm(`Xóa toàn bộ nhóm "${targetBrand}" (${groupStores.length} quán)?`)) return;
       const idsToRemove = new Set(groupStores.map(s => s.id));
       const defaultIdsInGroup = groupStores.filter(s => !s.isCustom && DEFAULT_STORES.some(d => d.id === s.id)).map(s => s.id);
@@ -1926,6 +2031,7 @@
         const socketOverride = state.socketOverrides[store.id];
         const customName = state.nameOverrides[store.id];
         const sizeOverride = state.sizeOverrides[store.id];
+        const areaOverride = state.areaOverrides[store.id];
         const finalName = (typeof customName === 'string' && customName.trim()) ? customName.trim() : store.name;
         const customBrand = state.brandOverrides[store.id];
         const hasCustomBrand = typeof customBrand === 'string' && customBrand.trim().length > 0;
@@ -1941,6 +2047,9 @@
         const sizeInfo = getSizeInfo(sizeCat, sizeOverride?.capacityEstimate || store.capacityEstimate);
         return {
           ...store, originalName: store.name, name: finalName, brandKey, rawBrand,
+          area: (typeof areaOverride === 'string' && areaOverride.trim()) ? areaOverride.trim() : store.area,
+          originalArea: store.area,
+          isAreaCustomized: Boolean(typeof areaOverride === 'string' && areaOverride.trim() && areaOverride.trim() !== store.area),
           isCustom: Boolean(store.isCustom) || state.customStores.some(c => c.id === store.id),
           isNameCustomized: Boolean(customName && customName.trim() && customName.trim() !== store.name),
           isSizeCustomized: Boolean(sizeOverride), sizeCategory: sizeCat,
@@ -1958,13 +2067,117 @@
       }));
     }
 
+    // ==================== NHÓM TỰ ĐẶT TÊN (CUSTOM GROUPS) ====================
+    // Thành viên nhóm lưu theo ID quán -> đổi tên nhóm / đổi tên quán / đổi khu vực không làm mất thành viên.
+    // movedIds: tập con của storeIds đã "Di chuyển" (ẩn khỏi nhóm thương hiệu gốc; xóa nhóm thì tự trở về).
+    function newGroupId() {
+      return 'grp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+    }
+
+    function normalizeGroupList(raw) {
+      const out = [];
+      const seen = new Set();
+      (Array.isArray(raw) ? raw : []).forEach(g => {
+        if (!g || typeof g.id !== 'string' || seen.has(g.id)) return;
+        const storeIds = Array.from(new Set((Array.isArray(g.storeIds) ? g.storeIds : []).filter(x => typeof x === 'string')));
+        const movedIds = Array.from(new Set((Array.isArray(g.movedIds) ? g.movedIds : []).filter(x => storeIds.includes(x))));
+        const createdAtMs = Number(g.createdAtMs) || Date.now();
+        seen.add(g.id);
+        out.push({
+          id: g.id,
+          name: String(g.name || 'Nhóm').trim() || 'Nhóm',
+          storeIds,
+          movedIds,
+          createdAtMs,
+          updatedAtMs: Number(g.updatedAtMs) || createdAtMs
+        });
+      });
+      return out;
+    }
+
+    function mergeCustomGroupLists(existing, incoming, deletedMap) {
+      const del = deletedMap || {};
+      const map = new Map();
+      normalizeGroupList(existing).forEach(g => { if (!del[g.id]) map.set(g.id, g); });
+      normalizeGroupList(incoming).forEach(g => {
+        if (del[g.id]) return;
+        const prev = map.get(g.id);
+        if (!prev || g.updatedAtMs > prev.updatedAtMs) map.set(g.id, g);
+      });
+      return Array.from(map.values());
+    }
+
+    function saveCustomGroups() { safeSaveJSON(STORAGE_KEYS.CUSTOM_GROUPS, state.customGroups); }
+    function getGroupById(id) { return state.customGroups.find(g => g.id === id) || null; }
+
+    function getMovedStoreIdSet() {
+      const set = new Set();
+      state.customGroups.forEach(g => (g.movedIds || []).forEach(id => set.add(id)));
+      return set;
+    }
+
+    // Quán thuộc một nhóm thương hiệu (bỏ các quán đã được "di chuyển" sang nhóm tự đặt tên)
+    function getBrandGroupStores(brandKey) {
+      const moved = getMovedStoreIdSet();
+      return getEnrichedStores().filter(s => s.brandKey === brandKey && !moved.has(s.id));
+    }
+
+    // Thành viên "hiện có" của nhóm (quán đã xóa/ẩn không được đếm)
+    function getGroupMemberStores(group, enrichedList) {
+      const set = new Set(group.storeIds);
+      return (enrichedList || getEnrichedStores()).filter(s => set.has(s.id));
+    }
+
+    function groupNameExists(name, excludeId = null) {
+      const key = normalizeStoreComparisonText(name);
+      return state.customGroups.some(g => g.id !== excludeId && normalizeStoreComparisonText(g.name) === key);
+    }
+
+    function renderStoreGroupChips(storeId) {
+      const groups = state.customGroups.filter(g => g.storeIds.includes(storeId));
+      if (!groups.length) return '';
+      const shown = groups.slice(0, 2).map(g => `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">📁 ${escapeHTML(g.name)}</span>`).join('');
+      const more = groups.length > 2 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">+${groups.length - 2}</span>` : '';
+      return shown + more;
+    }
+
+    function updateGroupWidget(show, allStores) {
+      const widget = document.getElementById('deleteBrandGroupWidget');
+      if (!widget) return;
+      widget.classList.toggle('hidden', !show);
+      const rmSubBtn = document.getElementById('btnRemoveSubGroup');
+      if (rmSubBtn) rmSubBtn.classList.toggle('hidden', !(state.selectedGroupId && state.selectedSubBrandKey));
+      if (!show) return;
+      const label = document.getElementById('groupWidgetLabel');
+      if (!label) return;
+      if (state.selectedGroupId) {
+        const g = getGroupById(state.selectedGroupId);
+        const gMembers = g ? getGroupMemberStores(g, allStores) : [];
+        const gSubCnt = g ? getGroupSubGroups(g, allStores).length : 0;
+        label.textContent = g ? `📁 ${g.name} • ${gSubCnt} nhóm • ${gMembers.length} quán` : '';
+      } else {
+        const key = getBrandCanonicalKey(state.selectedBrand);
+        const moved = getMovedStoreIdSet();
+        const cnt = allStores.filter(s => s.brandKey === key && !moved.has(s.id)).length;
+        label.textContent = `${state.selectedBrand} • ${cnt} quán`;
+      }
+    }
+
     function renderBrandChips() {
       const container = document.getElementById('brandFilterChips');
-      const deleteGroupWidget = document.getElementById('deleteBrandGroupWidget');
-      const btnDeleteGroup = document.getElementById('btnDeleteSelectedBrandGroup');
       if (!container) return;
       const allStores = getEnrichedStores();
-      const dynamicBrands = Array.from(new Set(allStores.map(s => s.brand).filter(Boolean)));
+      const movedSet = getMovedStoreIdSet();
+      const visibleStores = allStores.filter(s => !movedSet.has(s.id));
+      const dynamicBrands = Array.from(new Set(visibleStores.map(s => s.brand).filter(Boolean)));
+
+      if (state.selectedGroupId && !getGroupById(state.selectedGroupId)) {
+        state.selectedGroupId = null;
+        state.deleteGroupDismissedForBrand = null;
+      }
+      if (state.selectedGroupId) state.selectedBrand = 'all';
+      else state.selectedSubBrandKey = null;
+
       const selectedKey = state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand);
       const matchedBrand = selectedKey === 'all' ? 'all' : dynamicBrands.find(b => getBrandCanonicalKey(b) === selectedKey);
       if (state.selectedBrand !== 'all' && !matchedBrand) {
@@ -1972,28 +2185,409 @@
       } else if (matchedBrand && matchedBrand !== state.selectedBrand) {
         state.selectedBrand = matchedBrand;
       }
-      if (deleteGroupWidget && btnDeleteGroup) {
-        const showDel = state.selectedBrand && state.selectedBrand !== 'all' && state.deleteGroupDismissedForBrand !== state.selectedBrand;
-        deleteGroupWidget.classList.toggle('hidden', !showDel);
-        if (showDel) btnDeleteGroup.textContent = `🗑️ Xóa nhóm ${state.selectedBrand} (${allStores.filter(s => s.brandKey === selectedKey).length})`;
-      }
-      const chips = [{ key: 'all', label: `Tất cả (${allStores.length})` }, ...dynamicBrands.map(b => ({ key: b, label: `${b} (${allStores.filter(s => s.brandKey === getBrandCanonicalKey(b)).length})` }))];
-      container.innerHTML = chips.map(ch => {
-        const active = ch.key === 'all' ? state.selectedBrand === 'all' : getBrandCanonicalKey(state.selectedBrand) === getBrandCanonicalKey(ch.key);
-        const encodedKey = encodeURIComponent(ch.key);
-        return `<button type="button" data-brand-key="${escapeHTML(ch.key)}" onclick="selectBrand(decodeURIComponent('${encodedKey}'))" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 select-none ${active ? 'bg-hl-brown text-white shadow-sm' : 'bg-hl-cream text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'}">${escapeHTML(ch.label)}</button>`;
-      }).join('');
+
+      const activeKey = state.selectedGroupId ? ('grp:' + state.selectedGroupId) : state.selectedBrand;
+      const showWidget = activeKey !== 'all' && state.deleteGroupDismissedForBrand !== activeKey;
+      renderGroupSubChips(allStores);
+      updateGroupWidget(showWidget, allStores);
+
+      const baseCls = 'px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 select-none ';
+      const allActive = state.selectedBrand === 'all' && !state.selectedGroupId;
+      const parts = [];
+      parts.push(`<button type="button" data-brand-key="all" onclick="selectBrand('all')" class="${baseCls}${allActive ? 'bg-hl-brown text-white shadow-sm' : 'bg-hl-cream text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'}">${escapeHTML(`Tất cả (${allStores.length})`)}</button>`);
+
+      // Nhóm tự đặt tên: nằm ngay sau "Tất cả"
+      state.customGroups.forEach(g => {
+        const active = state.selectedGroupId === g.id;
+        const cnt = getGroupSubGroups(g, allStores).length;
+        parts.push(`<button type="button" data-brand-key="grp:${g.id}" onclick="selectGroup('${g.id}')" class="${baseCls}${active ? 'bg-hl-red text-white shadow-sm' : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'}">${escapeHTML(`📁 ${g.name} (${cnt})`)}</button>`);
+      });
+
+      // Nhóm thương hiệu tự tách
+      dynamicBrands.forEach(b => {
+        const key = getBrandCanonicalKey(b);
+        const active = !state.selectedGroupId && state.selectedBrand !== 'all' && getBrandCanonicalKey(state.selectedBrand) === key;
+        const encodedKey = encodeURIComponent(b);
+        const label = `${b} (${visibleStores.filter(s => s.brandKey === key).length})`;
+        parts.push(`<button type="button" data-brand-key="${escapeHTML(b)}" onclick="selectBrand(decodeURIComponent('${encodedKey}'))" class="${baseCls}${active ? 'bg-hl-brown text-white shadow-sm' : 'bg-hl-cream text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'}">${escapeHTML(label)}</button>`);
+      });
+      container.innerHTML = parts.join('');
+      renderClipboardBar();
     }
 
     function selectBrand(brandKey) {
       resetStorePage();
-      const prevKey = state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand);
-      const nextKey = brandKey === 'all' ? 'all' : getBrandCanonicalKey(brandKey);
-      if (prevKey !== nextKey) state.deleteGroupDismissedForBrand = null;
+      const prevActive = state.selectedGroupId ? ('grp:' + state.selectedGroupId) : (state.selectedBrand === 'all' ? 'all' : getBrandCanonicalKey(state.selectedBrand));
+      const nextActive = brandKey === 'all' ? 'all' : getBrandCanonicalKey(brandKey);
+      state.selectedSubBrandKey = null;
+      if (prevActive !== nextActive) state.deleteGroupDismissedForBrand = null;
+      state.selectedGroupId = null;
       state.selectedBrand = brandKey;
       renderBrandChips(); scrollBrandChipIntoView(brandKey); renderStoreList();
     }
 
+    function selectGroup(groupId) {
+      resetStorePage();
+      const prevActive = state.selectedGroupId ? ('grp:' + state.selectedGroupId) : state.selectedBrand;
+      if (prevActive !== 'grp:' + groupId) { state.deleteGroupDismissedForBrand = null; state.selectedSubBrandKey = null; }
+      state.selectedGroupId = groupId;
+      state.selectedBrand = 'all';
+      renderBrandChips(); scrollBrandChipIntoView('grp:' + groupId); renderStoreList();
+    }
+
+    // ---- Nhóm con: các nhóm thương hiệu nằm bên trong một nhóm tự đặt tên ----
+    // Ví dụ "Coffee sáng (3)" gồm Viva Star (11), Nova Coffee (8), Katinat (10).
+    function getGroupSubGroups(group, enrichedList) {
+      const map = new Map();
+      getGroupMemberStores(group, enrichedList).forEach(s => {
+        if (!map.has(s.brandKey)) map.set(s.brandKey, { brandKey: s.brandKey, brand: s.brand, stores: [] });
+        map.get(s.brandKey).stores.push(s);
+      });
+      return Array.from(map.values()).sort((a, b) => (b.stores.length - a.stores.length) || String(a.brand).localeCompare(String(b.brand), 'vi'));
+    }
+
+    function renderGroupSubChips(allStores) {
+      const wrap = document.getElementById('groupSubChipsRow');
+      const row = document.getElementById('groupSubChips');
+      if (!wrap || !row) return;
+      const g = getGroupById(state.selectedGroupId);
+      if (!g) { wrap.classList.add('hidden'); row.innerHTML = ''; return; }
+      const subs = getGroupSubGroups(g, allStores);
+      if (state.selectedSubBrandKey && !subs.some(s => s.brandKey === state.selectedSubBrandKey)) state.selectedSubBrandKey = null;
+      wrap.classList.remove('hidden');
+      if (!subs.length) {
+        row.innerHTML = '<span class="text-[11px] font-semibold text-hl-brown/65 px-1 py-1.5 whitespace-nowrap">Nhóm đang trống. Dùng Copy/Cắt rồi Dán hoặc "Chép/Chuyển sang nhóm…" để thêm.</span>';
+        return;
+      }
+      const total = subs.reduce((n, s) => n + s.stores.length, 0);
+      const baseCls = 'px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 select-none ';
+      const parts = [`<button type="button" onclick="selectSubGroup('all')" class="${baseCls}${!state.selectedSubBrandKey ? 'bg-hl-red text-white shadow-sm' : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'}">${escapeHTML(`Tất cả (${total})`)}</button>`];
+      subs.forEach(s => {
+        const active = state.selectedSubBrandKey === s.brandKey;
+        parts.push(`<button type="button" onclick="selectSubGroup('${escapeHTML(s.brandKey)}')" class="${baseCls}${active ? 'bg-hl-brown text-white shadow-sm' : 'bg-hl-cream text-hl-brown border border-hl-brown/15 hover:bg-hl-sand'}">${escapeHTML(`${s.brand} (${s.stores.length})`)}</button>`);
+      });
+      row.innerHTML = parts.join('');
+    }
+
+    function selectSubGroup(brandKey) {
+      resetStorePage();
+      state.selectedSubBrandKey = (brandKey === 'all' || state.selectedSubBrandKey === brandKey) ? null : brandKey;
+      renderBrandChips();
+      renderStoreList();
+    }
+
+    function scrollSubChips(deltaX) {
+      const el = document.getElementById('groupSubChips');
+      if (el) el.scrollBy({ left: deltaX, behavior: 'smooth' });
+    }
+
+    function removeSelectedSubGroup() {
+      const g = getGroupById(state.selectedGroupId);
+      const key = state.selectedSubBrandKey;
+      if (!g || !key) return;
+      const subs = getGroupSubGroups(g);
+      const sub = subs.find(s => s.brandKey === key);
+      if (!sub) return;
+      if (!window.confirm(`Gỡ nhóm con "${sub.brand}" (${sub.stores.length} quán) khỏi nhóm "${g.name}"? Quán không bị xóa.`)) return;
+      const ids = new Set(sub.stores.map(s => s.id));
+      g.storeIds = g.storeIds.filter(id => !ids.has(id));
+      g.movedIds = (g.movedIds || []).filter(id => !ids.has(id));
+      g.updatedAtMs = Date.now();
+      saveCustomGroups();
+      state.selectedSubBrandKey = null;
+      resetStorePage();
+      renderBrandChips(); renderStoreList();
+      showToast(`Đã gỡ nhóm con "${sub.brand}" khỏi "${g.name}"`);
+    }
+
+    // ---- Tạo / đổi tên / xóa nhóm tự đặt tên ----
+    function openGroupNameModal(kind, groupId = null) {
+      const g = kind === 'rename' ? getGroupById(groupId) : null;
+      if (kind === 'rename' && !g) return;
+      state.groupNameCtx = { kind, groupId };
+      document.getElementById('groupNameModalTitle').textContent = kind === 'rename' ? 'Đổi tên nhóm' : 'Tạo nhóm mới';
+      document.getElementById('groupNameModalSubtitle').textContent = kind === 'rename'
+        ? `Đang sửa nhóm "${g.name}" (${getGroupMemberStores(g).length} quán). Thành viên bên trong vẫn giữ nguyên.`
+        : 'Nhóm trống, sau đó dùng Copy/Dán hoặc "Chép/Chuyển sang nhóm…" để thêm quán.';
+      document.getElementById('groupNameSubmitBtn').textContent = kind === 'rename' ? 'Lưu tên nhóm' : 'Tạo nhóm';
+      const inp = document.getElementById('groupNameInput');
+      inp.value = g ? g.name : '';
+      document.getElementById('groupNameModal').classList.remove('hidden');
+      setTimeout(() => { inp.focus(); inp.select(); }, 60);
+    }
+
+    function submitGroupName(event) {
+      event.preventDefault();
+      const ctx = state.groupNameCtx;
+      if (!ctx) return;
+      const name = document.getElementById('groupNameInput').value.trim();
+      if (!name) return;
+      if (groupNameExists(name, ctx.kind === 'rename' ? ctx.groupId : null)) {
+        showToast(`⚠️ Đã có nhóm tên "${name}" rồi!`);
+        return;
+      }
+      const nowMs = Date.now();
+      if (ctx.kind === 'rename') {
+        const g = getGroupById(ctx.groupId);
+        if (!g) { closeModal('groupNameModal'); return; }
+        const oldName = g.name;
+        g.name = name; // chỉ đổi tên, storeIds/movedIds giữ nguyên
+        g.updatedAtMs = nowMs;
+        saveCustomGroups();
+        closeModal('groupNameModal');
+        renderBrandChips(); scrollBrandChipIntoView('grp:' + g.id); renderStoreList();
+        showToast(`Đã đổi tên nhóm "${oldName}" → "${name}"!`);
+      } else {
+        const g = { id: newGroupId(), name, storeIds: [], movedIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
+        state.customGroups.unshift(g);
+        saveCustomGroups();
+        closeModal('groupNameModal');
+        selectGroup(g.id);
+        showToast(`Đã tạo nhóm "${name}"!`);
+      }
+    }
+
+    function deleteCustomGroup(groupId) {
+      const g = getGroupById(groupId);
+      if (!g) return;
+      const cnt = getGroupMemberStores(g).length;
+      const movedCnt = (g.movedIds || []).length;
+      const extra = movedCnt > 0 ? `\n${movedCnt} quán đã di chuyển vào nhóm này sẽ tự trở về nhóm thương hiệu gốc.` : '';
+      if (!window.confirm(`Xóa nhóm "${g.name}" (${cnt} quán)? Các quán KHÔNG bị xóa, chỉ xóa nhóm.${extra}`)) return;
+      state.customGroups = state.customGroups.filter(x => x.id !== groupId);
+      state.deletedIds[groupId] = Date.now(); // chống hồi sinh khi nạp backup cũ
+      saveCustomGroups();
+      safeSaveJSON(STORAGE_KEYS.DELETED_IDS, state.deletedIds);
+      if (state.groupClipboard && state.groupClipboard.sourceGroupId === groupId) state.groupClipboard.sourceGroupId = null;
+      if (state.selectedGroupId === groupId) { state.selectedGroupId = null; state.deleteGroupDismissedForBrand = null; }
+      resetStorePage();
+      renderBrandChips(); renderStoreList();
+      showToast(`Đã xóa nhóm "${g.name}"!`);
+    }
+
+    function openEditSelectedGroup() {
+      if (state.selectedGroupId) openGroupNameModal('rename', state.selectedGroupId);
+      else openEditBrandGroupModal();
+    }
+
+    function deleteSelectedGroupAny() {
+      if (state.selectedGroupId) deleteCustomGroup(state.selectedGroupId);
+      else deleteSelectedBrandGroup();
+    }
+
+    function removeStoreFromSelectedGroup(event, storeId) {
+      if (event) event.stopPropagation();
+      const g = getGroupById(state.selectedGroupId);
+      if (!g) return;
+      g.storeIds = g.storeIds.filter(id => id !== storeId);
+      g.movedIds = (g.movedIds || []).filter(id => id !== storeId);
+      g.updatedAtMs = Date.now();
+      saveCustomGroups();
+      renderBrandChips(); renderStoreList();
+      showToast(`Đã gỡ quán khỏi nhóm "${g.name}"`);
+    }
+
+    // ---- Copy / Cắt / Dán nhóm ----
+    function getSelectionGroupContext() {
+      const enriched = getEnrichedStores();
+      if (state.selectedGroupId) {
+        const g = getGroupById(state.selectedGroupId);
+        if (!g) return null;
+        const gAll = getGroupMemberStores(g, enriched);
+        if (state.selectedSubBrandKey) {
+          const subMembers = gAll.filter(s => s.brandKey === state.selectedSubBrandKey);
+          const subName = subMembers.length ? subMembers[0].brand : 'Nhóm con';
+          return { sourceType: 'group', sourceGroupId: g.id, label: `${subName} (trong ${g.name})`, storeIds: subMembers.map(s => s.id) };
+        }
+        return { sourceType: 'group', sourceGroupId: g.id, label: g.name, storeIds: gAll.map(s => s.id) };
+      }
+      if (state.selectedBrand !== 'all') {
+        const key = getBrandCanonicalKey(state.selectedBrand);
+        const moved = getMovedStoreIdSet();
+        return { sourceType: 'brand', sourceGroupId: null, label: state.selectedBrand, storeIds: enriched.filter(s => s.brandKey === key && !moved.has(s.id)).map(s => s.id) };
+      }
+      return null;
+    }
+
+    function copyGroupToClipboard(mode) {
+      const ctx = getSelectionGroupContext();
+      if (!ctx || !ctx.storeIds.length) { showToast('Nhóm đang trống, chưa có quán để copy'); return; }
+      state.groupClipboard = { mode, storeIds: ctx.storeIds, label: ctx.label, sourceType: ctx.sourceType, sourceGroupId: ctx.sourceGroupId };
+      renderClipboardBar();
+      showToast(mode === 'move'
+        ? `✂️ Đã cắt "${ctx.label}" (${ctx.storeIds.length} quán). Chọn nhóm đích rồi bấm Dán`
+        : `📋 Đã copy "${ctx.label}" (${ctx.storeIds.length} quán). Chọn nhóm đích rồi bấm Dán`);
+    }
+
+    function renderClipboardBar() {
+      const bar = document.getElementById('groupClipboardBar');
+      const text = document.getElementById('groupClipboardText');
+      if (!bar || !text) return;
+      const cb = state.groupClipboard;
+      if (!cb) { bar.classList.add('hidden'); return; }
+      text.textContent = `${cb.mode === 'move' ? '✂️ Đã cắt' : '📋 Đã copy'}: ${cb.label} (${cb.storeIds.length} quán)`;
+      bar.classList.remove('hidden');
+    }
+
+    function clearGroupClipboard() {
+      state.groupClipboard = null;
+      renderClipboardBar();
+    }
+
+    function pasteClipboard() {
+      const cb = state.groupClipboard;
+      if (!cb) { showToast('Clipboard đang trống'); return; }
+      const target = getGroupById(state.selectedGroupId);
+      if (target) {
+        if (cb.mode === 'move' && cb.sourceType === 'group' && cb.sourceGroupId === target.id) {
+          showToast('Quán đã nằm sẵn trong nhóm này rồi'); return;
+        }
+        const ctx = { storeIds: cb.storeIds, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode };
+        applyTransfer(target, ctx);
+        saveCustomGroups();
+        if (cb.mode === 'move') state.groupClipboard = null;
+        renderBrandChips(); renderStoreList();
+        showToast(`${cb.mode === 'move' ? 'Đã di chuyển' : 'Đã dán'} ${cb.storeIds.length} quán vào nhóm "${target.name}"!`);
+      } else {
+        openGroupTransferModal({ storeIds: cb.storeIds, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode, fromClipboard: true });
+      }
+    }
+
+    function applyTransfer(target, ctx) {
+      const ids = ctx.storeIds || [];
+      const isMove = ctx.mode === 'move';
+      const source = ctx.sourceType === 'group' ? getGroupById(ctx.sourceGroupId) : null;
+      const sourceMoved = new Set(source ? (source.movedIds || []) : []);
+      const set = new Set(target.storeIds);
+      const movedSet = new Set(target.movedIds || []);
+      ids.forEach(id => {
+        set.add(id);
+        if (isMove) {
+          if (ctx.sourceType === 'brand' || ctx.sourceType === 'store') movedSet.add(id);
+          else if (ctx.sourceType === 'group' && sourceMoved.has(id)) movedSet.add(id);
+        }
+      });
+      target.storeIds = Array.from(set);
+      target.movedIds = Array.from(movedSet);
+      target.updatedAtMs = Date.now();
+      if (isMove && source && source.id !== target.id) {
+        const idSet = new Set(ids);
+        source.storeIds = source.storeIds.filter(id => !idSet.has(id));
+        source.movedIds = (source.movedIds || []).filter(id => !idSet.has(id));
+        source.updatedAtMs = Date.now();
+      }
+    }
+
+    // ---- Hộp thoại Chép / Di chuyển sang nhóm ----
+    function openTransferForSelection() {
+      const ctx = getSelectionGroupContext();
+      if (!ctx || !ctx.storeIds.length) { showToast('Nhóm đang trống, chưa có quán để chuyển'); return; }
+      openGroupTransferModal({ ...ctx, mode: 'copy' });
+    }
+
+    function openGroupTransferModal(ctx) {
+      state.transferCtx = ctx;
+      const sel = document.getElementById('transferTargetSelect');
+      const options = state.customGroups
+        .filter(g => !(ctx.sourceType === 'group' && g.id === ctx.sourceGroupId))
+        .map(g => `<option value="${g.id}">📁 ${escapeHTML(g.name)} (${getGroupSubGroups(g).length} nhóm • ${getGroupMemberStores(g).length} quán)</option>`);
+      options.push('<option value="__new__">➕ Tạo nhóm mới…</option>');
+      sel.innerHTML = options.join('');
+      const preferred = (state.selectedGroupId && state.selectedGroupId !== ctx.sourceGroupId && getGroupById(state.selectedGroupId)) ? state.selectedGroupId : null;
+      sel.value = preferred || (options.length > 1 ? state.customGroups.find(g => !(ctx.sourceType === 'group' && g.id === ctx.sourceGroupId)).id : '__new__');
+      document.getElementById('transferNewGroupName').value = '';
+      document.getElementById('transferSummary').textContent = `${ctx.label} • ${ctx.storeIds.length} quán`;
+      const previewByBrand = new Map();
+      getEnrichedStores().filter(s => ctx.storeIds.includes(s.id)).forEach(s => {
+        if (!previewByBrand.has(s.brandKey)) previewByBrand.set(s.brandKey, { brand: s.brand, names: [] });
+        previewByBrand.get(s.brandKey).names.push(s.name);
+      });
+      const previewText = Array.from(previewByBrand.values()).map(b => `${b.brand} (${b.names.length}): ${b.names.join(' • ')}`).join('\n');
+      const previewEl = document.getElementById('transferMembersPreview');
+      previewEl.classList.add('whitespace-pre-line');
+      previewEl.textContent = previewText || '(trống)';
+      const radio = document.querySelector(`input[name="transferMode"][value="${ctx.mode === 'move' ? 'move' : 'copy'}"]`);
+      if (radio) radio.checked = true;
+      onTransferTargetChange();
+      document.getElementById('groupTransferModal').classList.remove('hidden');
+    }
+
+    function onTransferTargetChange() {
+      const isNew = document.getElementById('transferTargetSelect').value === '__new__';
+      document.getElementById('transferNewNameWrap').classList.toggle('hidden', !isNew);
+      if (isNew) setTimeout(() => { const i = document.getElementById('transferNewGroupName'); if (i) i.focus(); }, 40);
+    }
+
+    function submitGroupTransfer(event) {
+      event.preventDefault();
+      const ctx = state.transferCtx;
+      if (!ctx) return;
+      const modeEl = document.querySelector('input[name="transferMode"]:checked');
+      ctx.mode = modeEl ? modeEl.value : 'copy';
+      const targetVal = document.getElementById('transferTargetSelect').value;
+      let target = null;
+      if (targetVal === '__new__') {
+        const name = document.getElementById('transferNewGroupName').value.trim();
+        if (!name) { showToast('Hãy nhập tên nhóm mới'); return; }
+        if (groupNameExists(name)) { showToast(`⚠️ Đã có nhóm tên "${name}" rồi!`); return; }
+        const nowMs = Date.now();
+        target = { id: newGroupId(), name, storeIds: [], movedIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
+        state.customGroups.unshift(target);
+      } else {
+        target = getGroupById(targetVal);
+      }
+      if (!target) return;
+      applyTransfer(target, ctx);
+      saveCustomGroups();
+      if (ctx.fromClipboard && ctx.mode === 'move') state.groupClipboard = null;
+      closeModal('groupTransferModal');
+      state.transferCtx = null;
+      if (state.activeModalStoreId && ctx.sourceType === 'store') { /* giữ nguyên trạng thái modal chi tiết đã đóng */ }
+      selectGroup(target.id);
+      showToast(`${ctx.mode === 'move' ? 'Đã di chuyển' : 'Đã chép'} ${ctx.storeIds.length} quán vào nhóm "${target.name}"!`);
+    }
+
+    // ==================== SỬA KHU VỰC HIỂN THỊ ====================
+    function openEditStoreAreaModal(event, storeId) {
+      if (event) event.stopPropagation();
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+      document.getElementById('editStoreAreaId').value = store.id;
+      document.getElementById('editAreaModalStoreName').textContent = store.name;
+      document.getElementById('editStoreAreaInput').value = store.area;
+      document.getElementById('editStoreAreaOriginal').textContent = store.originalArea || store.area;
+      document.getElementById('editStoreAreaModal').classList.remove('hidden');
+      setTimeout(() => { const i = document.getElementById('editStoreAreaInput'); if (i) { i.focus(); i.select(); } }, 60);
+    }
+
+    function refreshAfterAreaChange(storeId) {
+      renderStoreList();
+      if (state.activeModalStoreId === storeId && !document.getElementById('detailModal').classList.contains('hidden')) openStoreDetailModal(storeId);
+    }
+
+    function saveStoreAreaOverride(event) {
+      event.preventDefault();
+      const storeId = document.getElementById('editStoreAreaId').value;
+      const newArea = document.getElementById('editStoreAreaInput').value.trim();
+      if (!storeId || !newArea) return;
+      const baseStore = getAllBaseStores().find(s => s.id === storeId);
+      if (baseStore && newArea === baseStore.area) delete state.areaOverrides[storeId];
+      else state.areaOverrides[storeId] = newArea;
+      safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
+      closeModal('editStoreAreaModal');
+      refreshAfterAreaChange(storeId);
+      showToast('Đã cập nhật khu vực hiển thị!');
+    }
+
+    function resetStoreAreaOverride() {
+      const storeId = document.getElementById('editStoreAreaId').value;
+      if (!storeId) return;
+      delete state.areaOverrides[storeId];
+      safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
+      closeModal('editStoreAreaModal');
+      refreshAfterAreaChange(storeId);
+      showToast('Đã khôi phục khu vực gốc!');
+    }
     function normalizeStoreComparisonText(str) {
       return normalizeVietnamese(str)
         .replace(/[^a-z0-9\s]/g, ' ')
@@ -2271,9 +2865,14 @@
       const totalAllCount = allEnriched.length;
 
       let stores = allEnriched.map(store => ({ ...store, crowdInfo: evaluateStoreCrowd(store) }));
-      if (state.selectedBrand !== 'all') {
+      if (state.selectedGroupId) {
+        const activeGroup = getGroupById(state.selectedGroupId);
+        const memberSet = new Set(activeGroup ? activeGroup.storeIds : []);
+        stores = stores.filter(s => memberSet.has(s.id) && (!state.selectedSubBrandKey || s.brandKey === state.selectedSubBrandKey));
+      } else if (state.selectedBrand !== 'all') {
         const selectedKey = getBrandCanonicalKey(state.selectedBrand);
-        stores = stores.filter(s => s.brandKey === selectedKey);
+        const movedSetForFilter = getMovedStoreIdSet();
+        stores = stores.filter(s => s.brandKey === selectedKey && !movedSetForFilter.has(s.id));
       }
       if (state.socketFilter === 'high') stores = stores.filter(s => s.socketLevel === 'high');
       else if (state.socketFilter === 'medium') stores = stores.filter(s => s.socketLevel === 'high' || s.socketLevel === 'medium');
@@ -2328,7 +2927,7 @@
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-brown/10 text-hl-brown">${escapeHTML(store.brand)}</span>
-                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown">${escapeHTML(store.area)}</span>
+                <button type="button" onclick="openEditStoreAreaModal(event, '${store.id}')" title="Bấm để sửa khu vực hiển thị" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown hover:bg-hl-brown/15 border border-dashed border-hl-brown/25">${escapeHTML(store.area)} ✏️</button>${renderStoreGroupChips(store.id)}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${store.sizeBadgeClass}">${store.sizeLabel}</span>
                 ${store.distanceKm !== null ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-red/10 text-hl-red">📍 ${store.distanceKm.toFixed(1)} km</span>` : ''}
                 ${visitCount > 0 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">✓ Đã đi ${visitCount}x</span>` : ''}
@@ -2366,6 +2965,7 @@
               <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1">🗺️ Maps Live</a>
               <button onclick="openCheckinForStore('${store.id}')" class="bg-hl-red hover:bg-hl-redDark text-white font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs">✓ Đã tới</button>
             </div>
+          ${state.selectedGroupId ? `<button type="button" onclick="removeStoreFromSelectedGroup(event, '${store.id}')" class="w-full text-[11px] font-bold px-2 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100">➖ Gỡ khỏi nhóm này</button>` : ''}
           </article>
         `;
       }).join('') + buildStorePaginationHTML(filteredStoreCount, 'bottom');
@@ -2379,7 +2979,11 @@
       const dayOfWeek = new Date().getDay();
       state.modalChartDayType = (dayOfWeek === 0 || dayOfWeek === 6) ? 'weekend' : 'weekday';
       const socketBadge = getSocketBadgeInfo(store.socketLevel);
-      document.getElementById('modalStoreArea').textContent = `${store.area} • ${store.district}`;
+      const modalAreaEl = document.getElementById('modalStoreArea');
+      modalAreaEl.textContent = `${store.area} • ${store.district} ✏️`;
+      modalAreaEl.title = 'Bấm để sửa khu vực hiển thị';
+      modalAreaEl.classList.add('cursor-pointer');
+      modalAreaEl.onclick = (e) => { closeModal('detailModal'); openEditStoreAreaModal(e, store.id); };
       document.getElementById('modalStoreBrand').textContent = `Ô thương hiệu: ${store.brand}`;
       document.getElementById('modalStoreName').textContent = store.name;
       document.getElementById('modalStoreAddress').textContent = store.address;
@@ -2393,6 +2997,7 @@
       document.getElementById('btnPinStoreModal').onclick = (e) => togglePinStore(e, store.id);
       document.getElementById('btnEditNameModal').onclick = (e) => openEditStoreNameModal(e, store.id);
       document.getElementById('btnDeleteStoreModal').onclick = (e) => deleteStore(e, store.id);
+      document.getElementById('btnAddToGroupModal').onclick = () => { closeModal('detailModal'); openGroupTransferModal({ storeIds: [store.id], label: store.name, sourceType: 'store', sourceGroupId: null, mode: 'copy' }); };
       document.getElementById('btnEditSizeModal').onclick = (e) => openEditStoreSizeModal(e, store.id);
       document.getElementById('modalGmapsLink').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
       document.getElementById('modalBtnCheckin').onclick = () => { closeModal('detailModal'); openCheckinForStore(store.id); };
@@ -2675,7 +3280,9 @@
         nameOverrides: state.nameOverrides,
         brandOverrides: state.brandOverrides,
         sizeOverrides: state.sizeOverrides,
-        pinnedStoreIds: state.pinnedStoreIds
+        pinnedStoreIds: state.pinnedStoreIds,
+        areaOverrides: state.areaOverrides,
+        customGroups: state.customGroups
       };
     }
 
@@ -2781,6 +3388,10 @@
             state.brandOverrides = parsed.brandOverrides || {};
             state.sizeOverrides = parsed.sizeOverrides || {};
             state.pinnedStoreIds = Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [];
+            state.areaOverrides = (parsed.areaOverrides && typeof parsed.areaOverrides === 'object') ? parsed.areaOverrides : {};
+            state.customGroups = normalizeGroupList(parsed.customGroups).filter(g => !state.deletedIds[g.id]);
+            safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
+            saveCustomGroups();
           } else {
             // Gộp danh sách deletedIds
             const mergedDeleted = Object.assign({}, state.deletedIds);
@@ -2810,6 +3421,10 @@
             state.brandOverrides = Object.assign({}, state.brandOverrides, parsed.brandOverrides || {});
             state.sizeOverrides = Object.assign({}, state.sizeOverrides, parsed.sizeOverrides || {});
             state.pinnedStoreIds = Array.from(new Set([...state.pinnedStoreIds, ...(Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [])]));
+            state.areaOverrides = Object.assign({}, state.areaOverrides, (parsed.areaOverrides && typeof parsed.areaOverrides === 'object') ? parsed.areaOverrides : {});
+            state.customGroups = mergeCustomGroupLists(state.customGroups, parsed.customGroups, state.deletedIds);
+            safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
+            saveCustomGroups();
           }
 
           rebuildVisitStatsFromEntries();
@@ -2937,7 +3552,7 @@
     function setSimulatedHour(hourVal) { resetStorePage(); state.simulatedHour = hourVal; renderTimeSimulatorChips(); renderStoreList(); }
     function handleSearchInput(val) { resetStorePage(); state.searchQuery = val; document.getElementById('btnClearSearch').classList.toggle('hidden', !val); renderStoreList(); }
     function clearSearch() { resetStorePage(); state.searchQuery = ''; document.getElementById('searchInput').value = ''; document.getElementById('btnClearSearch').classList.add('hidden'); renderStoreList(); }
-    function resetAllFilters() { resetStorePage(); state.selectedBrand = 'all'; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
+    function resetAllFilters() { resetStorePage(); state.selectedBrand = 'all'; state.selectedGroupId = null; state.selectedSubBrandKey = null; state.deleteGroupDismissedForBrand = null; state.socketFilter = 'all'; state.sizeFilter = 'all'; state.crowdFilter = 'all'; state.simulatedHour = null; clearSearch(); renderBrandChips(); toggleFilter('socket', 'all'); toggleSizeFilter('all'); renderTimeSimulatorChips(); renderStoreList(); }
     function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
     function updateJournalBadge() { const badge = document.getElementById('journalBadge'); badge.textContent = state.journal.length; badge.classList.toggle('hidden', state.journal.length === 0); }
     function escapeHTML(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -3094,6 +3709,8 @@
       state.sizeOverrides = safeLoadJSON(STORAGE_KEYS.SIZE_OVERRIDES, {});
       const rawPins = safeLoadJSON(STORAGE_KEYS.PINNED_STORES, []);
       state.pinnedStoreIds = Array.isArray(rawPins) ? rawPins.filter(x => typeof x === 'string') : [];
+      state.areaOverrides = safeLoadJSON(STORAGE_KEYS.AREA_OVERRIDES, {});
+      state.customGroups = normalizeGroupList(safeLoadJSON(STORAGE_KEYS.CUSTOM_GROUPS, [])).filter(g => !state.deletedIds[g.id]);
 
       const savedReminder = safeLoadJSON(STORAGE_KEYS.EXIT_BACKUP_REMINDER, true);
       state.exitBackupReminder = typeof savedReminder === 'boolean' ? savedReminder : true;
