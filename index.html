@@ -159,6 +159,8 @@
           <button type="button" id="btnCopyGroup" onclick="copyGroupToClipboard('copy')" title="Copy cả nhóm vào clipboard" class="bg-white hover:bg-hl-sand text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-hl-brown/15 active:scale-95 transition-all">📋 Copy</button>
           <button type="button" id="btnCutGroup" onclick="copyGroupToClipboard('move')" title="Cắt cả nhóm để dán/di chuyển" class="bg-white hover:bg-hl-sand text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-hl-brown/15 active:scale-95 transition-all">✂️ Cắt</button>
           <button type="button" id="btnTransferGroup" onclick="openTransferForSelection()" title="Chép hoặc di chuyển cả nhóm sang nhóm tự đặt tên" class="bg-amber-100 hover:bg-amber-200 text-amber-950 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-300 active:scale-95 transition-all">📤 Chép/Chuyển sang nhóm…</button>
+          <button type="button" id="btnEditSubGroup" onclick="openEditSubGroup()" title="Đổi tên nhóm con (cập nhật cả bên trong lẫn bên ngoài)" class="hidden bg-amber-50 hover:bg-amber-100 text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-200 active:scale-95 transition-all">✏️ Đổi tên nhóm con</button>
+          <button type="button" id="btnDeleteSubGroup" onclick="deleteSubGroupEverywhere()" title="Xóa nhóm thương hiệu này ở cả bên trong lẫn bên ngoài" class="hidden bg-white hover:bg-red-100 text-hl-red text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-200 active:scale-95 transition-all">🗑️ Xóa nhóm con</button>
           <button type="button" id="btnRemoveSubGroup" onclick="removeSelectedSubGroup()" title="Gỡ nhóm con đang chọn khỏi nhóm này (quán không bị xóa)" class="hidden bg-white hover:bg-amber-100 text-amber-950 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-300 active:scale-95 transition-all">➖ Gỡ nhóm con</button>
           <button type="button" id="btnEditSelectedBrandGroup" onclick="openEditSelectedGroup()" title="Đổi tên nhóm" class="bg-amber-50 hover:bg-amber-100 text-hl-brown text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-200 active:scale-95 transition-all">✏️ Sửa tên</button>
           <button type="button" id="btnDeleteSelectedBrandGroup" onclick="deleteSelectedGroupAny()" class="hover:bg-red-100 bg-white text-hl-red text-[11px] font-bold px-2.5 py-1 rounded-lg border border-red-200 active:scale-95 transition-all">🗑️ Xóa nhóm</button>
@@ -941,11 +943,11 @@
           <p class="text-[11px] font-bold text-hl-brown uppercase tracking-wide">Cách thực hiện:</p>
           <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
             <input type="radio" name="transferMode" value="copy" checked class="mt-0.5 accent-hl-red">
-            <span><strong>Copy:</strong> quán vẫn nằm ở nhóm gốc và có thêm trong nhóm đích.</span>
+            <span><strong>Copy:</strong> nhóm đích thêm nhóm con này, nhóm gốc giữ nguyên. Nhóm con luôn đồng bộ với nhóm thương hiệu bên ngoài (thêm/sửa/xóa quán ở đâu cũng cập nhật cả hai).</span>
           </label>
           <label class="flex items-start gap-2 text-xs text-hl-brown cursor-pointer">
             <input type="radio" name="transferMode" value="move" class="mt-0.5 accent-hl-red">
-            <span><strong>Di chuyển:</strong> quán chuyển hẳn sang nhóm đích (không còn hiện ở nhóm gốc; xóa nhóm đích thì quán tự trở về nhóm gốc).</span>
+            <span><strong>Di chuyển:</strong> chuyển nhóm con từ nhóm tự đặt tên gốc sang nhóm đích. Nhóm thương hiệu bên ngoài luôn giữ nguyên và vẫn đồng bộ.</span>
           </label>
         </div>
         <div class="bg-hl-cream rounded-xl p-3 border border-hl-brown/10 space-y-1">
@@ -1908,8 +1910,8 @@
       renderBrandChips();
     }
 
-    function openEditBrandGroupModal() {
-      const targetBrand = state.selectedBrand;
+    function openEditBrandGroupModal(brandOverride) {
+      const targetBrand = (typeof brandOverride === 'string' && brandOverride) ? brandOverride : state.selectedBrand;
       if (!targetBrand || targetBrand === 'all') return;
       const targetKey = getBrandCanonicalKey(targetBrand);
       const groupStores = getBrandGroupStores(targetKey);
@@ -1965,7 +1967,9 @@
       safeSaveJSON(STORAGE_KEYS.BRAND_OVERRIDES, state.brandOverrides);
       safeSaveJSON(STORAGE_KEYS.NAME_OVERRIDES, state.nameOverrides);
 
-      state.selectedBrand = newBrand;
+      relinkBrandKeyInGroups(oldKey, getBrandCanonicalKey(newBrand));
+      if (state.selectedGroupId) { state.selectedSubBrandKey = getBrandCanonicalKey(newBrand); }
+      else { state.selectedBrand = newBrand; }
       state.deleteGroupDismissedForBrand = null;
 
       closeModal('editBrandGroupModal');
@@ -1988,6 +1992,7 @@
       const idsToRemove = new Set(groupStores.map(s => s.id));
       const defaultIdsInGroup = groupStores.filter(s => !s.isCustom && DEFAULT_STORES.some(d => d.id === s.id)).map(s => s.id);
       state.customStores = state.customStores.filter(s => !idsToRemove.has(s.id));
+      unlinkBrandKeyEverywhere(targetKey);
       safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
       if (defaultIdsInGroup.length > 0) {
         state.hiddenDefaultStoreIds = Array.from(new Set([...state.hiddenDefaultStoreIds, ...defaultIdsInGroup]));
@@ -2068,8 +2073,8 @@
     }
 
     // ==================== NHÓM TỰ ĐẶT TÊN (CUSTOM GROUPS) ====================
-    // Thành viên nhóm lưu theo ID quán -> đổi tên nhóm / đổi tên quán / đổi khu vực không làm mất thành viên.
-    // movedIds: tập con của storeIds đã "Di chuyển" (ẩn khỏi nhóm thương hiệu gốc; xóa nhóm thì tự trở về).
+    // Nhóm tự đặt tên lưu danh sách nhóm thương hiệu liên kết (brandKeys) -> nhóm con bên trong và nhóm thương hiệu bên ngoài
+    // là MỘT dữ liệu duy nhất: thêm/sửa/xóa/đổi tên quán ở đâu cũng cập nhật cả hai. Đổi tên nhóm không ảnh hưởng thành viên.
     function newGroupId() {
       return 'grp_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
     }
@@ -2079,15 +2084,19 @@
       const seen = new Set();
       (Array.isArray(raw) ? raw : []).forEach(g => {
         if (!g || typeof g.id !== 'string' || seen.has(g.id)) return;
-        const storeIds = Array.from(new Set((Array.isArray(g.storeIds) ? g.storeIds : []).filter(x => typeof x === 'string')));
-        const movedIds = Array.from(new Set((Array.isArray(g.movedIds) ? g.movedIds : []).filter(x => storeIds.includes(x))));
+        const brandKeys = Array.from(new Set((Array.isArray(g.brandKeys) ? g.brandKeys : []).filter(x => typeof x === 'string' && x)));
+        // Dữ liệu bản cũ lưu theo ID quán -> giữ lại tạm để migrateLegacyGroups() đổi sang liên kết thương hiệu
+        const legacyStoreIds = Array.from(new Set([
+          ...(Array.isArray(g.legacyStoreIds) ? g.legacyStoreIds : []),
+          ...(Array.isArray(g.storeIds) ? g.storeIds : [])
+        ].filter(x => typeof x === 'string')));
         const createdAtMs = Number(g.createdAtMs) || Date.now();
         seen.add(g.id);
         out.push({
           id: g.id,
           name: String(g.name || 'Nhóm').trim() || 'Nhóm',
-          storeIds,
-          movedIds,
+          brandKeys,
+          legacyStoreIds,
           createdAtMs,
           updatedAtMs: Number(g.updatedAtMs) || createdAtMs
         });
@@ -2102,7 +2111,11 @@
       normalizeGroupList(incoming).forEach(g => {
         if (del[g.id]) return;
         const prev = map.get(g.id);
-        if (!prev || g.updatedAtMs > prev.updatedAtMs) map.set(g.id, g);
+        if (!prev) { map.set(g.id, g); return; }
+        const newer = g.updatedAtMs > prev.updatedAtMs ? g : prev;
+        const older = newer === g ? prev : g;
+        // Gộp thêm dữ liệu cũ chưa migrate của bản còn lại để không mất quán
+        map.set(g.id, { ...newer, legacyStoreIds: Array.from(new Set([...(newer.legacyStoreIds || []), ...((older.brandKeys && older.brandKeys.length) ? [] : (older.legacyStoreIds || []))])) });
       });
       return Array.from(map.values());
     }
@@ -2110,10 +2123,9 @@
     function saveCustomGroups() { safeSaveJSON(STORAGE_KEYS.CUSTOM_GROUPS, state.customGroups); }
     function getGroupById(id) { return state.customGroups.find(g => g.id === id) || null; }
 
+    // Đã bỏ khái niệm "ẩn quán khỏi nhóm thương hiệu": Copy hay Di chuyển đều đồng bộ, nhóm thương hiệu bên ngoài luôn đầy đủ
     function getMovedStoreIdSet() {
-      const set = new Set();
-      state.customGroups.forEach(g => (g.movedIds || []).forEach(id => set.add(id)));
-      return set;
+      return new Set();
     }
 
     // Quán thuộc một nhóm thương hiệu (bỏ các quán đã được "di chuyển" sang nhóm tự đặt tên)
@@ -2123,9 +2135,10 @@
     }
 
     // Thành viên "hiện có" của nhóm (quán đã xóa/ẩn không được đếm)
+    // Thành viên nhóm = toàn bộ quán thuộc các nhóm thương hiệu được liên kết (luôn đồng bộ với bên ngoài)
     function getGroupMemberStores(group, enrichedList) {
-      const set = new Set(group.storeIds);
-      return (enrichedList || getEnrichedStores()).filter(s => set.has(s.id));
+      const keys = new Set(group.brandKeys || []);
+      return (enrichedList || getEnrichedStores()).filter(s => keys.has(s.brandKey));
     }
 
     function groupNameExists(name, excludeId = null) {
@@ -2133,8 +2146,8 @@
       return state.customGroups.some(g => g.id !== excludeId && normalizeStoreComparisonText(g.name) === key);
     }
 
-    function renderStoreGroupChips(storeId) {
-      const groups = state.customGroups.filter(g => g.storeIds.includes(storeId));
+    function renderStoreGroupChips(brandKey) {
+      const groups = state.customGroups.filter(g => (g.brandKeys || []).includes(brandKey));
       if (!groups.length) return '';
       const shown = groups.slice(0, 2).map(g => `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">📁 ${escapeHTML(g.name)}</span>`).join('');
       const more = groups.length > 2 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-200">+${groups.length - 2}</span>` : '';
@@ -2146,7 +2159,7 @@
       if (!widget) return;
       widget.classList.toggle('hidden', !show);
       const rmSubBtn = document.getElementById('btnRemoveSubGroup');
-      if (rmSubBtn) rmSubBtn.classList.toggle('hidden', !(state.selectedGroupId && state.selectedSubBrandKey));
+      ['btnRemoveSubGroup', 'btnEditSubGroup', 'btnDeleteSubGroup'].forEach(id => { const b = document.getElementById(id); if (b) b.classList.toggle('hidden', !(state.selectedGroupId && state.selectedSubBrandKey)); });
       if (!show) return;
       const label = document.getElementById('groupWidgetLabel');
       if (!label) return;
@@ -2285,19 +2298,107 @@
       const g = getGroupById(state.selectedGroupId);
       const key = state.selectedSubBrandKey;
       if (!g || !key) return;
-      const subs = getGroupSubGroups(g);
-      const sub = subs.find(s => s.brandKey === key);
-      if (!sub) return;
-      if (!window.confirm(`Gỡ nhóm con "${sub.brand}" (${sub.stores.length} quán) khỏi nhóm "${g.name}"? Quán không bị xóa.`)) return;
-      const ids = new Set(sub.stores.map(s => s.id));
-      g.storeIds = g.storeIds.filter(id => !ids.has(id));
-      g.movedIds = (g.movedIds || []).filter(id => !ids.has(id));
+      const sub = getGroupSubGroups(g).find(s => s.brandKey === key);
+      unlinkBrandFromSelectedGroup(key, sub ? sub.brand : 'Nhóm con');
+    }
+
+    // ---- Liên kết nhóm thương hiệu <-> nhóm con (đồng bộ trong/ngoài) ----
+    function countStoresForBrandKeys(keys, enrichedList) {
+      const set = new Set(keys || []);
+      return (enrichedList || getEnrichedStores()).filter(s => set.has(s.brandKey)).length;
+    }
+
+    // Đổi sang cơ chế liên kết thương hiệu cho dữ liệu nhóm cũ (lưu theo ID quán)
+    function migrateLegacyGroups() {
+      let changed = false;
+      const keyById = new Map(getEnrichedStores().map(s => [s.id, s.brandKey]));
+      state.customGroups.forEach(g => {
+        if (g.legacyStoreIds && g.legacyStoreIds.length) {
+          const keys = new Set(g.brandKeys || []);
+          g.legacyStoreIds.forEach(id => { const k = keyById.get(id); if (k) keys.add(k); });
+          g.brandKeys = Array.from(keys);
+          g.legacyStoreIds = [];
+          changed = true;
+        }
+      });
+      if (changed) saveCustomGroups();
+    }
+
+    // Đổi tên nhóm thương hiệu -> mọi nhóm tự đặt tên chứa nó đi theo tên/khóa mới
+    function relinkBrandKeyInGroups(oldKey, newKey) {
+      if (!oldKey || !newKey || oldKey === newKey) return;
+      let changed = false;
+      state.customGroups.forEach(g => {
+        const keys = g.brandKeys || [];
+        if (keys.includes(oldKey)) {
+          g.brandKeys = Array.from(new Set(keys.map(k => (k === oldKey ? newKey : k))));
+          g.updatedAtMs = Date.now();
+          changed = true;
+        }
+      });
+      if (state.selectedSubBrandKey === oldKey) state.selectedSubBrandKey = newKey;
+      if (changed) saveCustomGroups();
+    }
+
+    function unlinkBrandKeyEverywhere(brandKey) {
+      let changed = false;
+      state.customGroups.forEach(g => {
+        if ((g.brandKeys || []).includes(brandKey)) {
+          g.brandKeys = g.brandKeys.filter(k => k !== brandKey);
+          g.updatedAtMs = Date.now();
+          changed = true;
+        }
+      });
+      if (state.selectedSubBrandKey === brandKey) state.selectedSubBrandKey = null;
+      if (changed) saveCustomGroups();
+    }
+
+    function unlinkBrandFromSelectedGroup(brandKey, brandLabel) {
+      const g = getGroupById(state.selectedGroupId);
+      if (!g || !brandKey) return;
+      const n = countStoresForBrandKeys([brandKey]);
+      if (!window.confirm(`Gỡ nhóm con "${brandLabel}" (${n} quán) khỏi nhóm "${g.name}"? Các quán và nhóm thương hiệu bên ngoài vẫn giữ nguyên.`)) return;
+      g.brandKeys = (g.brandKeys || []).filter(k => k !== brandKey);
       g.updatedAtMs = Date.now();
       saveCustomGroups();
       state.selectedSubBrandKey = null;
       resetStorePage();
       renderBrandChips(); renderStoreList();
-      showToast(`Đã gỡ nhóm con "${sub.brand}" khỏi "${g.name}"`);
+      showToast(`Đã gỡ nhóm con "${brandLabel}" khỏi "${g.name}"`);
+    }
+
+    function openEditSubGroup() {
+      const g = getGroupById(state.selectedGroupId);
+      const key = state.selectedSubBrandKey;
+      if (!g || !key) return;
+      const sub = getGroupSubGroups(g).find(s => s.brandKey === key);
+      if (sub) openEditBrandGroupModal(sub.brand);
+    }
+
+    // Xóa nhóm thương hiệu (nhóm con) ở cả bên trong lẫn bên ngoài
+    function deleteSubGroupEverywhere() {
+      const g = getGroupById(state.selectedGroupId);
+      const key = state.selectedSubBrandKey;
+      if (!g || !key) return;
+      const stores = getEnrichedStores().filter(s => s.brandKey === key);
+      if (!stores.length) return;
+      const label = stores[0].brand;
+      if (!window.confirm(`XÓA nhóm thương hiệu "${label}" (${stores.length} quán) ở CẢ BÊN TRONG lẫn BÊN NGOÀI?\nCác quán thuộc nhóm này sẽ bị xóa khỏi danh sách. Nếu chỉ muốn gỡ khỏi "${g.name}", hãy chọn "Gỡ nhóm con".`)) return;
+      const ids = new Set(stores.map(s => s.id));
+      state.customStores = state.customStores.filter(s => !ids.has(s.id));
+      safeSaveJSON(STORAGE_KEYS.CUSTOM_STORES, state.customStores);
+      const defaultIds = stores.filter(s => DEFAULT_STORES.some(d => d.id === s.id)).map(s => s.id);
+      if (defaultIds.length) {
+        state.hiddenDefaultStoreIds = Array.from(new Set([...state.hiddenDefaultStoreIds, ...defaultIds]));
+        safeSaveJSON(STORAGE_KEYS.HIDDEN_DEFAULT_STORES, state.hiddenDefaultStoreIds);
+      }
+      state.pinnedStoreIds = state.pinnedStoreIds.filter(id => !ids.has(id));
+      safeSaveJSON(STORAGE_KEYS.PINNED_STORES, state.pinnedStoreIds);
+      unlinkBrandKeyEverywhere(key);
+      state.selectedSubBrandKey = null;
+      resetStorePage();
+      renderBrandChips(); renderStoreList(); populateStoreSelect(); renderHiddenStoresCard();
+      showToast(`Đã xóa nhóm "${label}" ở cả trong lẫn ngoài!`);
     }
 
     // ---- Tạo / đổi tên / xóa nhóm tự đặt tên ----
@@ -2331,14 +2432,14 @@
         const g = getGroupById(ctx.groupId);
         if (!g) { closeModal('groupNameModal'); return; }
         const oldName = g.name;
-        g.name = name; // chỉ đổi tên, storeIds/movedIds giữ nguyên
+        g.name = name; // chỉ đổi tên, các nhóm con liên kết giữ nguyên
         g.updatedAtMs = nowMs;
         saveCustomGroups();
         closeModal('groupNameModal');
         renderBrandChips(); scrollBrandChipIntoView('grp:' + g.id); renderStoreList();
         showToast(`Đã đổi tên nhóm "${oldName}" → "${name}"!`);
       } else {
-        const g = { id: newGroupId(), name, storeIds: [], movedIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
+        const g = { id: newGroupId(), name, brandKeys: [], legacyStoreIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
         state.customGroups.unshift(g);
         saveCustomGroups();
         closeModal('groupNameModal');
@@ -2350,16 +2451,15 @@
     function deleteCustomGroup(groupId) {
       const g = getGroupById(groupId);
       if (!g) return;
+      const subCnt = getGroupSubGroups(g).length;
       const cnt = getGroupMemberStores(g).length;
-      const movedCnt = (g.movedIds || []).length;
-      const extra = movedCnt > 0 ? `\n${movedCnt} quán đã di chuyển vào nhóm này sẽ tự trở về nhóm thương hiệu gốc.` : '';
-      if (!window.confirm(`Xóa nhóm "${g.name}" (${cnt} quán)? Các quán KHÔNG bị xóa, chỉ xóa nhóm.${extra}`)) return;
+      if (!window.confirm(`Xóa nhóm "${g.name}" (${subCnt} nhóm • ${cnt} quán)? Các quán và nhóm thương hiệu bên ngoài KHÔNG bị xóa, chỉ xóa nhóm tự đặt tên.`)) return;
       state.customGroups = state.customGroups.filter(x => x.id !== groupId);
       state.deletedIds[groupId] = Date.now(); // chống hồi sinh khi nạp backup cũ
       saveCustomGroups();
       safeSaveJSON(STORAGE_KEYS.DELETED_IDS, state.deletedIds);
       if (state.groupClipboard && state.groupClipboard.sourceGroupId === groupId) state.groupClipboard.sourceGroupId = null;
-      if (state.selectedGroupId === groupId) { state.selectedGroupId = null; state.deleteGroupDismissedForBrand = null; }
+      if (state.selectedGroupId === groupId) { state.selectedGroupId = null; state.selectedSubBrandKey = null; state.deleteGroupDismissedForBrand = null; }
       resetStorePage();
       renderBrandChips(); renderStoreList();
       showToast(`Đã xóa nhóm "${g.name}"!`);
@@ -2375,16 +2475,12 @@
       else deleteSelectedBrandGroup();
     }
 
+    // Trong nhóm, quán luôn đi theo nhóm thương hiệu của nó -> gỡ = gỡ cả nhóm con (quán không bị xóa)
     function removeStoreFromSelectedGroup(event, storeId) {
       if (event) event.stopPropagation();
-      const g = getGroupById(state.selectedGroupId);
-      if (!g) return;
-      g.storeIds = g.storeIds.filter(id => id !== storeId);
-      g.movedIds = (g.movedIds || []).filter(id => id !== storeId);
-      g.updatedAtMs = Date.now();
-      saveCustomGroups();
-      renderBrandChips(); renderStoreList();
-      showToast(`Đã gỡ quán khỏi nhóm "${g.name}"`);
+      const store = getEnrichedStores().find(s => s.id === storeId);
+      if (!store) return;
+      unlinkBrandFromSelectedGroup(store.brandKey, store.brand);
     }
 
     // ---- Copy / Cắt / Dán nhóm ----
@@ -2393,30 +2489,30 @@
       if (state.selectedGroupId) {
         const g = getGroupById(state.selectedGroupId);
         if (!g) return null;
-        const gAll = getGroupMemberStores(g, enriched);
+        const members = getGroupMemberStores(g, enriched);
         if (state.selectedSubBrandKey) {
-          const subMembers = gAll.filter(s => s.brandKey === state.selectedSubBrandKey);
-          const subName = subMembers.length ? subMembers[0].brand : 'Nhóm con';
-          return { sourceType: 'group', sourceGroupId: g.id, label: `${subName} (trong ${g.name})`, storeIds: subMembers.map(s => s.id) };
+          const sub = members.filter(s => s.brandKey === state.selectedSubBrandKey);
+          return { sourceType: 'group', sourceGroupId: g.id, label: `${sub.length ? sub[0].brand : 'Nhóm con'} (trong ${g.name})`, brandKeys: sub.length ? [state.selectedSubBrandKey] : [] };
         }
-        return { sourceType: 'group', sourceGroupId: g.id, label: g.name, storeIds: gAll.map(s => s.id) };
+        return { sourceType: 'group', sourceGroupId: g.id, label: g.name, brandKeys: Array.from(new Set(members.map(s => s.brandKey))) };
       }
       if (state.selectedBrand !== 'all') {
         const key = getBrandCanonicalKey(state.selectedBrand);
-        const moved = getMovedStoreIdSet();
-        return { sourceType: 'brand', sourceGroupId: null, label: state.selectedBrand, storeIds: enriched.filter(s => s.brandKey === key && !moved.has(s.id)).map(s => s.id) };
+        const has = enriched.some(s => s.brandKey === key);
+        return { sourceType: 'brand', sourceGroupId: null, label: state.selectedBrand, brandKeys: has ? [key] : [] };
       }
       return null;
     }
 
     function copyGroupToClipboard(mode) {
       const ctx = getSelectionGroupContext();
-      if (!ctx || !ctx.storeIds.length) { showToast('Nhóm đang trống, chưa có quán để copy'); return; }
-      state.groupClipboard = { mode, storeIds: ctx.storeIds, label: ctx.label, sourceType: ctx.sourceType, sourceGroupId: ctx.sourceGroupId };
+      if (!ctx || !ctx.brandKeys.length) { showToast('Nhóm đang trống, chưa có gì để copy'); return; }
+      state.groupClipboard = { mode, brandKeys: ctx.brandKeys, label: ctx.label, sourceType: ctx.sourceType, sourceGroupId: ctx.sourceGroupId };
       renderClipboardBar();
+      const n = countStoresForBrandKeys(ctx.brandKeys);
       showToast(mode === 'move'
-        ? `✂️ Đã cắt "${ctx.label}" (${ctx.storeIds.length} quán). Chọn nhóm đích rồi bấm Dán`
-        : `📋 Đã copy "${ctx.label}" (${ctx.storeIds.length} quán). Chọn nhóm đích rồi bấm Dán`);
+        ? `✂️ Đã cắt "${ctx.label}" (${ctx.brandKeys.length} nhóm • ${n} quán). Chọn nhóm đích rồi bấm Dán`
+        : `📋 Đã copy "${ctx.label}" (${ctx.brandKeys.length} nhóm • ${n} quán). Chọn nhóm đích rồi bấm Dán`);
     }
 
     function renderClipboardBar() {
@@ -2425,7 +2521,7 @@
       if (!bar || !text) return;
       const cb = state.groupClipboard;
       if (!cb) { bar.classList.add('hidden'); return; }
-      text.textContent = `${cb.mode === 'move' ? '✂️ Đã cắt' : '📋 Đã copy'}: ${cb.label} (${cb.storeIds.length} quán)`;
+      text.textContent = `${cb.mode === 'move' ? '✂️ Đã cắt' : '📋 Đã copy'}: ${cb.label} (${cb.brandKeys.length} nhóm • ${countStoresForBrandKeys(cb.brandKeys)} quán)`;
       bar.classList.remove('hidden');
     }
 
@@ -2440,72 +2536,63 @@
       const target = getGroupById(state.selectedGroupId);
       if (target) {
         if (cb.mode === 'move' && cb.sourceType === 'group' && cb.sourceGroupId === target.id) {
-          showToast('Quán đã nằm sẵn trong nhóm này rồi'); return;
+          showToast('Nhóm con đã nằm sẵn trong nhóm này rồi'); return;
         }
-        const ctx = { storeIds: cb.storeIds, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode };
-        applyTransfer(target, ctx);
+        applyTransfer(target, { brandKeys: cb.brandKeys, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode });
         saveCustomGroups();
         if (cb.mode === 'move') state.groupClipboard = null;
         renderBrandChips(); renderStoreList();
-        showToast(`${cb.mode === 'move' ? 'Đã di chuyển' : 'Đã dán'} ${cb.storeIds.length} quán vào nhóm "${target.name}"!`);
+        showToast(`${cb.mode === 'move' ? 'Đã di chuyển' : 'Đã dán'} ${cb.brandKeys.length} nhóm con vào "${target.name}"!`);
       } else {
-        openGroupTransferModal({ storeIds: cb.storeIds, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode, fromClipboard: true });
+        openGroupTransferModal({ brandKeys: cb.brandKeys, label: cb.label, sourceType: cb.sourceType, sourceGroupId: cb.sourceGroupId, mode: cb.mode, fromClipboard: true });
       }
     }
 
+    // Liên kết nhóm thương hiệu vào nhóm đích. Copy hay Di chuyển đều giữ nhóm thương hiệu bên ngoài nguyên vẹn;
+    // "Di chuyển" từ một nhóm tự đặt tên khác thì chỉ gỡ liên kết ở nhóm nguồn.
     function applyTransfer(target, ctx) {
-      const ids = ctx.storeIds || [];
-      const isMove = ctx.mode === 'move';
-      const source = ctx.sourceType === 'group' ? getGroupById(ctx.sourceGroupId) : null;
-      const sourceMoved = new Set(source ? (source.movedIds || []) : []);
-      const set = new Set(target.storeIds);
-      const movedSet = new Set(target.movedIds || []);
-      ids.forEach(id => {
-        set.add(id);
-        if (isMove) {
-          if (ctx.sourceType === 'brand' || ctx.sourceType === 'store') movedSet.add(id);
-          else if (ctx.sourceType === 'group' && sourceMoved.has(id)) movedSet.add(id);
-        }
-      });
-      target.storeIds = Array.from(set);
-      target.movedIds = Array.from(movedSet);
+      const keys = new Set(target.brandKeys || []);
+      (ctx.brandKeys || []).forEach(k => keys.add(k));
+      target.brandKeys = Array.from(keys);
       target.updatedAtMs = Date.now();
-      if (isMove && source && source.id !== target.id) {
-        const idSet = new Set(ids);
-        source.storeIds = source.storeIds.filter(id => !idSet.has(id));
-        source.movedIds = (source.movedIds || []).filter(id => !idSet.has(id));
-        source.updatedAtMs = Date.now();
+      if (ctx.mode === 'move' && ctx.sourceType === 'group') {
+        const source = getGroupById(ctx.sourceGroupId);
+        if (source && source.id !== target.id) {
+          const rm = new Set(ctx.brandKeys || []);
+          source.brandKeys = (source.brandKeys || []).filter(k => !rm.has(k));
+          source.updatedAtMs = Date.now();
+        }
       }
     }
 
     // ---- Hộp thoại Chép / Di chuyển sang nhóm ----
     function openTransferForSelection() {
       const ctx = getSelectionGroupContext();
-      if (!ctx || !ctx.storeIds.length) { showToast('Nhóm đang trống, chưa có quán để chuyển'); return; }
+      if (!ctx || !ctx.brandKeys.length) { showToast('Nhóm đang trống, chưa có gì để chuyển'); return; }
       openGroupTransferModal({ ...ctx, mode: 'copy' });
     }
 
     function openGroupTransferModal(ctx) {
       state.transferCtx = ctx;
       const sel = document.getElementById('transferTargetSelect');
-      const options = state.customGroups
-        .filter(g => !(ctx.sourceType === 'group' && g.id === ctx.sourceGroupId))
-        .map(g => `<option value="${g.id}">📁 ${escapeHTML(g.name)} (${getGroupSubGroups(g).length} nhóm • ${getGroupMemberStores(g).length} quán)</option>`);
+      const targets = state.customGroups.filter(g => !(ctx.sourceType === 'group' && g.id === ctx.sourceGroupId));
+      const options = targets.map(g => `<option value="${g.id}">📁 ${escapeHTML(g.name)} (${getGroupSubGroups(g).length} nhóm • ${getGroupMemberStores(g).length} quán)</option>`);
       options.push('<option value="__new__">➕ Tạo nhóm mới…</option>');
       sel.innerHTML = options.join('');
       const preferred = (state.selectedGroupId && state.selectedGroupId !== ctx.sourceGroupId && getGroupById(state.selectedGroupId)) ? state.selectedGroupId : null;
-      sel.value = preferred || (options.length > 1 ? state.customGroups.find(g => !(ctx.sourceType === 'group' && g.id === ctx.sourceGroupId)).id : '__new__');
+      sel.value = preferred || (targets.length ? targets[0].id : '__new__');
       document.getElementById('transferNewGroupName').value = '';
-      document.getElementById('transferSummary').textContent = `${ctx.label} • ${ctx.storeIds.length} quán`;
+      const keySet = new Set(ctx.brandKeys || []);
       const previewByBrand = new Map();
-      getEnrichedStores().filter(s => ctx.storeIds.includes(s.id)).forEach(s => {
+      getEnrichedStores().filter(s => keySet.has(s.brandKey)).forEach(s => {
         if (!previewByBrand.has(s.brandKey)) previewByBrand.set(s.brandKey, { brand: s.brand, names: [] });
         previewByBrand.get(s.brandKey).names.push(s.name);
       });
-      const previewText = Array.from(previewByBrand.values()).map(b => `${b.brand} (${b.names.length}): ${b.names.join(' • ')}`).join('\n');
+      const total = Array.from(previewByBrand.values()).reduce((n, b) => n + b.names.length, 0);
+      document.getElementById('transferSummary').textContent = `${ctx.label} • ${previewByBrand.size} nhóm • ${total} quán`;
       const previewEl = document.getElementById('transferMembersPreview');
       previewEl.classList.add('whitespace-pre-line');
-      previewEl.textContent = previewText || '(trống)';
+      previewEl.textContent = Array.from(previewByBrand.values()).map(b => `${b.brand} (${b.names.length}): ${b.names.join(' • ')}`).join('\n') || '(trống)';
       const radio = document.querySelector(`input[name="transferMode"][value="${ctx.mode === 'move' ? 'move' : 'copy'}"]`);
       if (radio) radio.checked = true;
       onTransferTargetChange();
@@ -2531,7 +2618,7 @@
         if (!name) { showToast('Hãy nhập tên nhóm mới'); return; }
         if (groupNameExists(name)) { showToast(`⚠️ Đã có nhóm tên "${name}" rồi!`); return; }
         const nowMs = Date.now();
-        target = { id: newGroupId(), name, storeIds: [], movedIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
+        target = { id: newGroupId(), name, brandKeys: [], legacyStoreIds: [], createdAtMs: nowMs, updatedAtMs: nowMs };
         state.customGroups.unshift(target);
       } else {
         target = getGroupById(targetVal);
@@ -2542,9 +2629,8 @@
       if (ctx.fromClipboard && ctx.mode === 'move') state.groupClipboard = null;
       closeModal('groupTransferModal');
       state.transferCtx = null;
-      if (state.activeModalStoreId && ctx.sourceType === 'store') { /* giữ nguyên trạng thái modal chi tiết đã đóng */ }
       selectGroup(target.id);
-      showToast(`${ctx.mode === 'move' ? 'Đã di chuyển' : 'Đã chép'} ${ctx.storeIds.length} quán vào nhóm "${target.name}"!`);
+      showToast(`${ctx.mode === 'move' ? 'Đã di chuyển' : 'Đã thêm'} ${(ctx.brandKeys || []).length} nhóm con (${countStoresForBrandKeys(ctx.brandKeys)} quán) vào "${target.name}"!`);
     }
 
     // ==================== SỬA KHU VỰC HIỂN THỊ ====================
@@ -2867,8 +2953,8 @@
       let stores = allEnriched.map(store => ({ ...store, crowdInfo: evaluateStoreCrowd(store) }));
       if (state.selectedGroupId) {
         const activeGroup = getGroupById(state.selectedGroupId);
-        const memberSet = new Set(activeGroup ? activeGroup.storeIds : []);
-        stores = stores.filter(s => memberSet.has(s.id) && (!state.selectedSubBrandKey || s.brandKey === state.selectedSubBrandKey));
+        const memberSet = new Set(activeGroup ? (activeGroup.brandKeys || []) : []);
+        stores = stores.filter(s => memberSet.has(s.brandKey) && (!state.selectedSubBrandKey || s.brandKey === state.selectedSubBrandKey));
       } else if (state.selectedBrand !== 'all') {
         const selectedKey = getBrandCanonicalKey(state.selectedBrand);
         const movedSetForFilter = getMovedStoreIdSet();
@@ -2927,7 +3013,7 @@
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-brown/10 text-hl-brown">${escapeHTML(store.brand)}</span>
-                <button type="button" onclick="openEditStoreAreaModal(event, '${store.id}')" title="Bấm để sửa khu vực hiển thị" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown hover:bg-hl-brown/15 border border-dashed border-hl-brown/25">${escapeHTML(store.area)} ✏️</button>${renderStoreGroupChips(store.id)}
+                <button type="button" onclick="openEditStoreAreaModal(event, '${store.id}')" title="Bấm để sửa khu vực hiển thị" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-sand text-hl-brown hover:bg-hl-brown/15 border border-dashed border-hl-brown/25">${escapeHTML(store.area)} ✏️</button>${renderStoreGroupChips(store.brandKey)}
                 <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${store.sizeBadgeClass}">${store.sizeLabel}</span>
                 ${store.distanceKm !== null ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-hl-red/10 text-hl-red">📍 ${store.distanceKm.toFixed(1)} km</span>` : ''}
                 ${visitCount > 0 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">✓ Đã đi ${visitCount}x</span>` : ''}
@@ -2965,7 +3051,7 @@
               <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="bg-hl-sand hover:bg-hl-brown/15 text-hl-brown font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1">🗺️ Maps Live</a>
               <button onclick="openCheckinForStore('${store.id}')" class="bg-hl-red hover:bg-hl-redDark text-white font-bold text-xs py-2.5 px-2 rounded-xl flex items-center justify-center gap-1 shadow-xs">✓ Đã tới</button>
             </div>
-          ${state.selectedGroupId ? `<button type="button" onclick="removeStoreFromSelectedGroup(event, '${store.id}')" class="w-full text-[11px] font-bold px-2 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100">➖ Gỡ khỏi nhóm này</button>` : ''}
+          ${state.selectedGroupId ? `<button type="button" onclick="removeStoreFromSelectedGroup(event, '${store.id}')" class="w-full text-[11px] font-bold px-2 py-1.5 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100">➖ Gỡ nhóm con này khỏi nhóm</button>` : ''}
           </article>
         `;
       }).join('') + buildStorePaginationHTML(filteredStoreCount, 'bottom');
@@ -2997,7 +3083,7 @@
       document.getElementById('btnPinStoreModal').onclick = (e) => togglePinStore(e, store.id);
       document.getElementById('btnEditNameModal').onclick = (e) => openEditStoreNameModal(e, store.id);
       document.getElementById('btnDeleteStoreModal').onclick = (e) => deleteStore(e, store.id);
-      document.getElementById('btnAddToGroupModal').onclick = () => { closeModal('detailModal'); openGroupTransferModal({ storeIds: [store.id], label: store.name, sourceType: 'store', sourceGroupId: null, mode: 'copy' }); };
+      document.getElementById('btnAddToGroupModal').onclick = () => { closeModal('detailModal'); openGroupTransferModal({ brandKeys: [store.brandKey], label: `Nhóm "${store.brand}" (chứa ${store.name})`, sourceType: 'store', sourceGroupId: null, mode: 'copy' }); };
       document.getElementById('btnEditSizeModal').onclick = (e) => openEditStoreSizeModal(e, store.id);
       document.getElementById('modalGmapsLink').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(store.name + ' ' + store.address)}`;
       document.getElementById('modalBtnCheckin').onclick = () => { closeModal('detailModal'); openCheckinForStore(store.id); };
@@ -3390,6 +3476,7 @@
             state.pinnedStoreIds = Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [];
             state.areaOverrides = (parsed.areaOverrides && typeof parsed.areaOverrides === 'object') ? parsed.areaOverrides : {};
             state.customGroups = normalizeGroupList(parsed.customGroups).filter(g => !state.deletedIds[g.id]);
+            migrateLegacyGroups();
             safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
             saveCustomGroups();
           } else {
@@ -3423,6 +3510,7 @@
             state.pinnedStoreIds = Array.from(new Set([...state.pinnedStoreIds, ...(Array.isArray(parsed.pinnedStoreIds) ? parsed.pinnedStoreIds : [])]));
             state.areaOverrides = Object.assign({}, state.areaOverrides, (parsed.areaOverrides && typeof parsed.areaOverrides === 'object') ? parsed.areaOverrides : {});
             state.customGroups = mergeCustomGroupLists(state.customGroups, parsed.customGroups, state.deletedIds);
+            migrateLegacyGroups();
             safeSaveJSON(STORAGE_KEYS.AREA_OVERRIDES, state.areaOverrides);
             saveCustomGroups();
           }
@@ -3711,6 +3799,7 @@
       state.pinnedStoreIds = Array.isArray(rawPins) ? rawPins.filter(x => typeof x === 'string') : [];
       state.areaOverrides = safeLoadJSON(STORAGE_KEYS.AREA_OVERRIDES, {});
       state.customGroups = normalizeGroupList(safeLoadJSON(STORAGE_KEYS.CUSTOM_GROUPS, [])).filter(g => !state.deletedIds[g.id]);
+      migrateLegacyGroups();
 
       const savedReminder = safeLoadJSON(STORAGE_KEYS.EXIT_BACKUP_REMINDER, true);
       state.exitBackupReminder = typeof savedReminder === 'boolean' ? savedReminder : true;
